@@ -1,5 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import styles from "./styles.scss";
+import Prism from "prismjs";
+import CodeRenderer from "./components/prism";
 
 export default function Home() {
   const tabs = ["request", "response"];
@@ -11,6 +14,20 @@ export default function Home() {
     useState(false);
   const [activeSubscription, setActiveSubscription] =
     useState("Subscription A");
+
+  const codeSnippet = {
+    Accept: "*/*",
+    "Api-Key": "secret",
+    "Content-Length": "179",
+    "Content-Type": "application/json",
+    "User-Agent": "Convoy/v0.9.2",
+    "X-Convoy-Signature":
+      "t=1683636651,v1=4b8090d03b912d691cf8ddc1f2963b806af237807a18523ce04808ff1631a5c5",
+  };
+
+  useEffect(() => {
+    Prism.highlightAll();
+  }, []);
 
   return (
     <div className="pt-60px max-w-[974px] m-auto">
@@ -123,7 +140,7 @@ export default function Home() {
 
       {showEvents && (
         <div className="flex mb-200px  border-t border-gray-200 mt-40px">
-          <div className="min-w-[605px] w-full h-full overflow-hidden border-r border-gray-200">
+          <div className="min-w-[624px] w-full h-full overflow-hidden border-r border-gray-200">
             <table className="w-full border-b border-gray-200">
               <tbody>
                 <tr className="border-b border-gray-200 py-10px">
@@ -350,7 +367,7 @@ export default function Home() {
               </tbody>
             </table>
             <div className="flex items-center justify-between mt-16px">
-              <div class="flex items-center">
+              <div className="flex items-center">
                 <button className="flex items-center px-16px py-8px rounded-8px border border-primary-400 text-primary-400 text-12">
                   <img
                     src="/angle-left.svg"
@@ -374,7 +391,7 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="max-w-[450px] w-full">
+          <div className="max-w-[350px] w-full">
             <div className="flex items-center justify-between border-b border-gray-200">
               <ul className="flex flex-row m-auto w-full">
                 {tabs.map((tab) => (
@@ -407,6 +424,37 @@ export default function Home() {
                 Retry
               </button>
             </div>
+
+            {activeTab === "request" && (
+              <div className="p-10px">
+                <CodeRenderer
+                  title="Header"
+                  language="language-json"
+                  code={codeSnippet}
+                  className="mb-26px"
+                />
+                <CodeRenderer
+                  title="Response"
+                  language="language-json"
+                  code={codeSnippet}
+                  className="mb-26px"
+                />
+              </div>
+            )}
+            {activeTab === "response" && (
+              <div className="p-10px">
+                <CodeRenderer
+                  title="Header"
+                  language="language-json"
+                  code={codeSnippet}
+                />
+                <CodeRenderer
+                  title="Body"
+                  language="language-json"
+                  code={codeSnippet}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
