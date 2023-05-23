@@ -234,12 +234,12 @@ export default function Home() {
                                         >
                                             <div className="w-1/5">
                                                 <div className="flex items-center justify-center px-12px py-2px text-12 font-medium w-fit rounded-24px bg-success-50 text-success-400">
-                                                    Success
+                                                    200 Success
                                                 </div>
                                             </div>
                                             <div className="w-1/2">
-                                                <div className="flex items-center justify-center px-12px py-2px text-12 font-medium max-w-[160px] whitespace-nowrap overflow-ellipsis rounded-24px bg-gray-50 text-gray-400">
-                                                    dfi30-9hfk89-ds0...
+                                                <div className="flex items-center justify-center px-12px py-2px text-12 font-medium max-w-[220px] whitespace-nowrap overflow-ellipsis rounded-24px bg-gray-50 text-gray-400">
+                                                    dfi30-9hfk89-ds0k89-k89k89...
                                                     <button className="border-none bg-transparent">
                                                         <img
                                                             src="/copy.svg"
