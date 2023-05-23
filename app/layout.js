@@ -11,7 +11,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-[#FAFAFE]">
+      <body className={`${inter.className} bg-[#FAFAFE]`}>
         <header className="w-full bg-white-100 border-b border-b-grey-10">
           <div className="flex items-center justify-between w-full max-w-[1440px] m-auto bg-white-100 px-64px py-12px">
             <a href="/" rel="noreferrer">
