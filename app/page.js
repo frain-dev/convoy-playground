@@ -44,17 +44,17 @@ export default function Home() {
     return (
         <React.Fragment>
             <div className="pt-60px max-w-[1200px] m-auto">
-                <h2 className="text-18 text-center font-semibold">
+                <h2 className="text-18 text-gray-800 text-center font-semibold">
                     Convoy Playground
                 </h2>
-                <p className="text-center text-12 text-gray-500 m-auto max-w-[460px]">
+                <p className="text-center text-12 text-gray-600 m-auto max-w-[460px]">
                     A playground for you to receive and send out webhook events,
                     test, debug and review webhook events; just like you will
-                    with Convoy{" "}
+                    with Convoy.
                 </p>
 
                 <div className="relative mt-24px w-fit m-auto">
-                    <div className="flex items-center w-fit h-50px bg-white-100 rounded-8px border border-primary-50 pr-16px transition-[width] duration-500 ease-in-out">
+                    <div className="flex items-center gap-16px w-fit h-50px bg-white-100 rounded-8px border border-primary-50 pr-16px transition-[width] duration-500 ease-in-out">
                         <div>
                             <button
                                 onClick={() =>
@@ -74,18 +74,22 @@ export default function Home() {
                                 />
                             </button>
                         </div>
-                        <div className="flex items-center p-14px">
-                            <span className="text-gray-600 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
+                        <div className="flex items-center py-14px">
+                            <span className="text-gray-600 text-14 mr-10px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
                                 http://localhost:5005/ingest/ikR6pN4ED9X13vNT
                             </span>
                             <button className="">
-                                <img src="/copy.svg" alt="copy icon" className="w-18px h-18px" />
+                                <img
+                                    src="/copy.svg"
+                                    alt="copy icon"
+                                    className="w-18px h-18px"
+                                />
                             </button>
                         </div>
                         <img
                             src="/arrow-right.svg"
                             alt="arrow-right icon"
-                            className="mr-16px w-18px"
+                            className="w-18px"
                         />
                         <div className="flex items-center justify-end">
                             {!showUrlForm && !showDestinationUrl && (
@@ -128,7 +132,11 @@ export default function Home() {
                                         }}
                                         className="ml-auto"
                                     >
-                                        <img src="/edit.svg" alt="edit icon"  className="w-18px h-18px" />
+                                        <img
+                                            src="/edit.svg"
+                                            alt="edit icon"
+                                            className="w-18px h-18px"
+                                        />
                                     </button>
                                 </div>
                             )}
