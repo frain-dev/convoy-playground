@@ -54,13 +54,13 @@ export default function Home() {
                 </p>
 
                 <div className="relative mt-24px w-fit m-auto">
-                    <div className="flex items-center max-w-[700px] min-w-[590px] h-46px bg-white-100 rounded-4px border border-primary-25 pr-16px">
+                    <div className="flex items-center w-fit h-50px bg-white-100 rounded-8px border border-primary-50 pr-16px transition-[width] duration-500 ease-in-out">
                         <div>
                             <button
                                 onClick={() =>
                                     setSubscriptionDropdownState(true)
                                 }
-                                className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-25"
+                                className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50"
                             >
                                 {activeSubscription}
                                 <img
@@ -78,20 +78,20 @@ export default function Home() {
                             <span className="text-gray-600 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
                                 http://localhost:5005/ingest/ikR6pN4ED9X13vNT
                             </span>
-                            <button className="border border-gray-200 rounded-4px p-2px">
-                                <img src="/copy.svg" alt="copy icon" />
+                            <button className="">
+                                <img src="/copy.svg" alt="copy icon" className="w-18px h-18px" />
                             </button>
                         </div>
                         <img
                             src="/arrow-right.svg"
                             alt="arrow-right icon"
-                            className="mx-10px"
+                            className="mr-16px w-18px"
                         />
                         <div className="flex items-center justify-end">
                             {!showUrlForm && !showDestinationUrl && (
                                 <button
                                     onClick={() => setUrlFormState(true)}
-                                    className="text-10 text-gray-600 rounded-8px py-6px px-12px border border-gray-300"
+                                    className="text-12 text-gray-600 rounded-8px py-6px px-12px border border-primary-50"
                                 >
                                     Add Destination
                                 </button>
@@ -106,7 +106,7 @@ export default function Home() {
                                     />
                                     <button
                                         onClick={() => handleKeyDown}
-                                        className="border border-gray-200 rounded-4px p-4px ml-auto"
+                                        className="ml-auto"
                                     >
                                         <img
                                             src="/check.svg"
@@ -117,7 +117,7 @@ export default function Home() {
                             )}
                             {!showUrlForm && showDestinationUrl && (
                                 <div className="flex items-center w-full">
-                                    <p className="text-gray-500 text-14 mr-16px max-w-[120px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
+                                    <p className="text-gray-500 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
                                         {destinationUrl}
                                     </p>
 
@@ -126,9 +126,9 @@ export default function Home() {
                                             setUrlFormState(true);
                                             setShowDestinationUrl(false);
                                         }}
-                                        className="border border-gray-200 rounded-4px p-4px ml-auto"
+                                        className="ml-auto"
                                     >
-                                        <img src="/edit.svg" alt="edit icon" />
+                                        <img src="/edit.svg" alt="edit icon"  className="w-18px h-18px" />
                                     </button>
                                 </div>
                             )}
@@ -239,12 +239,14 @@ export default function Home() {
                                             </div>
                                             <div className="w-1/2">
                                                 <div className="flex items-center justify-center px-12px py-2px w-fit text-gray-600">
-                                                    <span className="text-14  max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">dfi30-9hfk89-ds0k89-k89k89...</span>
+                                                    <span className="text-14  max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">
+                                                        dfi30-9hfk89-ds0k89-k89k89...
+                                                    </span>
                                                     <button className="border-none bg-transparent">
                                                         <img
                                                             src="/copy.svg"
                                                             alt="copy icon"
-                                                            className="ml-4px"
+                                                            className="ml-4px h-14px w-14px"
                                                         />
                                                     </button>
                                                 </div>
@@ -286,12 +288,14 @@ export default function Home() {
                                             </div>
                                             <div className="w-1/2">
                                                 <div className="flex items-center justify-center px-12px py-2px w-fit text-gray-600">
-                                                    <span className="text-14  max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">dfi30-9hfk89-ds0k89-k89k89...</span>
+                                                    <span className="text-14  max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">
+                                                        dfi30-9hfk89-ds0k89-k89k89...
+                                                    </span>
                                                     <button className="border-none bg-transparent">
                                                         <img
                                                             src="/copy.svg"
                                                             alt="copy icon"
-                                                            className="ml-4px"
+                                                            className="ml-4px h-14px w-14px"
                                                         />
                                                     </button>
                                                 </div>
@@ -316,7 +320,6 @@ export default function Home() {
                                         </div>
                                     ))}
                                 </div>
-
                             </div>
                             <div className="flex items-center justify-between mt-16px px-10px pb-10px">
                                 <div className="flex items-center">
