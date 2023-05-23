@@ -5,7 +5,7 @@ import CodeRenderer from "./components/prism";
 
 export default function Home() {
     const tabs = ["request", "response"];
-    const tableIndex = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const tableIndex = [0, 1, 2, 3, 4, 5, 6, 7];
     const subscriptions = ["Subscription A", "Subscription B"];
     const showEvents = true;
     const [activeTab, setActiveTab] = useState("request");
@@ -224,6 +224,53 @@ export default function Home() {
                                     <div className="flex items-center border-b border-gray-200 py-10px px-16px">
                                         <div className="w-2/5 text-12 text-gray-400">
                                             17 Jan, 2022
+                                        </div>
+                                        <div className="w-3/5"></div>
+                                    </div>
+                                    {tableIndex.map((item) => (
+                                        <div
+                                            key={item}
+                                            className="flex items-center p-16px"
+                                        >
+                                            <div className="w-1/5">
+                                                <div className="flex items-center justify-center px-12px py-2px text-14 w-fit rounded-24px bg-success-50 text-success-400">
+                                                    200 Success
+                                                </div>
+                                            </div>
+                                            <div className="w-1/2">
+                                                <div className="flex items-center justify-center px-12px py-2px w-fit rounded-24px bg-gray-50 text-gray-400">
+                                                    <span className="text-14  max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">dfi30-9hfk89-ds0k89-k89k89...</span>
+                                                    <button className="border-none bg-transparent">
+                                                        <img
+                                                            src="/copy.svg"
+                                                            alt="copy icon"
+                                                            className="ml-4px"
+                                                        />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="w-1/5 ml-auto flex items-center justify-around">
+                                                <div className="text-14 text-gray-500">
+                                                    10:45:11Am
+                                                </div>
+                                                <button className="border-none bg-transparent">
+                                                    <img
+                                                        src="/arrow-up-right.svg"
+                                                        alt="arrow right up icon"
+                                                    />
+                                                </button>
+                                                <button className="border-none bg-transparent">
+                                                    <img
+                                                        src="/refresh.svg"
+                                                        alt="refresh icon"
+                                                    />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="flex items-center border-b border-t border-gray-200 py-10px px-16px">
+                                        <div className="w-2/5 text-12 text-gray-400">
+                                            18 Jan, 2022
                                         </div>
                                         <div className="w-3/5"></div>
                                     </div>
