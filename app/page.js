@@ -233,13 +233,13 @@ export default function Home() {
                                             className="flex items-center py-10px px-16px"
                                         >
                                             <div className="w-1/5">
-                                                <div className="flex items-center justify-center px-12px py-2px text-14 font-medium w-fit rounded-24px bg-success-50 text-success-400">
+                                                <div className="flex items-center justify-center px-12px py-2px text-14 w-fit rounded-24px bg-success-50 text-success-400">
                                                     200 Success
                                                 </div>
                                             </div>
                                             <div className="w-1/2">
-                                                <div className="flex items-center justify-center px-12px py-2px text-14 font-medium max-w-[240px] whitespace-nowrap overflow-ellipsis rounded-24px bg-gray-50 text-gray-400">
-                                                    dfi30-9hfk89-ds0k89-k89k89...
+                                                <div className="flex items-center justify-center px-12px py-2px text-14 w-fit whitespace-nowrap overflow-ellipsis rounded-24px bg-gray-50 text-gray-400">
+                                                    <span className="max-w-[200px] overflow-hidden text-ellipsis">dfi30-9hfk89-ds0k89-k89k89...</span>
                                                     <button className="border-none bg-transparent">
                                                         <img
                                                             src="/copy.svg"
