@@ -238,8 +238,8 @@ export default function Home() {
                                                 </div>
                                             </div>
                                             <div className="w-1/2">
-                                                <div className="flex items-center justify-center px-12px py-2px text-14 w-fit whitespace-nowrap overflow-ellipsis rounded-24px bg-gray-50 text-gray-400">
-                                                    <span className="max-w-[200px] overflow-hidden text-ellipsis">dfi30-9hfk89-ds0k89-k89k89...</span>
+                                                <div className="flex items-center justify-center px-12px py-2px w-fit rounded-24px bg-gray-50 text-gray-400">
+                                                    <span className="text-14  max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">dfi30-9hfk89-ds0k89-k89k89...</span>
                                                     <button className="border-none bg-transparent">
                                                         <img
                                                             src="/copy.svg"

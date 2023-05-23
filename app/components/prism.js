@@ -27,7 +27,7 @@ const CodeRenderer = ({ title, language, code }) => {
                     </code>
                 </pre>
 
-                {code && (
+                {code && code.length > 300 && (
                     <div className="flex py-8px px-16px border-t border-primary-25">
                         <button
                             onClick={() =>
