@@ -222,7 +222,7 @@ export default function Home() {
                             <div className="min-h-[70vh]">
                                 <div className="w-full border-b border-gray-200">
                                     <div className="flex items-center border-b border-gray-200 py-10px px-16px">
-                                        <div className="w-2/5 text-14 text-gray-400">
+                                        <div className="w-2/5 text-12 text-gray-400">
                                             17 Jan, 2022
                                         </div>
                                         <div className="w-3/5"></div>
@@ -230,7 +230,7 @@ export default function Home() {
                                     {tableIndex.map((item) => (
                                         <div
                                             key={item}
-                                            className="flex items-center py-10px px-16px"
+                                            className="flex items-center p-16px"
                                         >
                                             <div className="w-1/5">
                                                 <div className="flex items-center justify-center px-12px py-2px text-14 w-fit rounded-24px bg-success-50 text-success-400">
