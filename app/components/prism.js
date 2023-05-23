@@ -16,7 +16,7 @@ const CodeRenderer = ({ title, language, code }) => {
 
     return (
         <div className="border border-primary-25 rounded-8px mb-26px">
-            <h4 class="border-b border-primary-25 bg-primary-25 py-8px px-22px rounded-tl-8px rounded-tr-8px text-14 text-gray-600">
+            <h4 className="border-b border-primary-25 bg-primary-25 py-8px px-22px rounded-tl-8px rounded-tr-8px text-14 text-gray-600">
                 {title}
             </h4>
 
@@ -30,7 +30,7 @@ const CodeRenderer = ({ title, language, code }) => {
             </pre>
 
             {code && code.length > 300 && (
-                <div class="flex justify-end py-8px px-16px border-t border-primary-25">
+                <div className="flex justify-end py-8px px-16px border-t border-primary-25">
                     <button
                         onClick={() =>
                             showMorePayload
