@@ -323,7 +323,7 @@ export default function Home() {
                             </div>
                             <div className="flex items-center justify-between mt-16px px-10px pb-10px">
                                 <div className="flex items-center">
-                                    <button className="flex items-center px-14px py-6px rounded-8px border border-primary-400 text-primary-400 text-12">
+                                    <button className="flex items-center px-14px py-6px text-primary-400 text-14">
                                         <img
                                             src="/angle-left.svg"
                                             alt="angle right icon"
@@ -331,7 +331,8 @@ export default function Home() {
                                         />
                                         Previous
                                     </button>
-                                    <button className="ml-24px flex items-center px-14px py-6px rounded-8px border border-primary-400 text-primary-400 text-12">
+                                    <div className="h-16px w-[1px] bg-primary-50 mx-24px"></div>
+                                    <button className="flex items-center px-14px py-6px  text-primary-400 text-14">
                                         Next
                                         <img
                                             src="/angle-right.svg"
