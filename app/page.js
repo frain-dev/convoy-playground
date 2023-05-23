@@ -47,7 +47,7 @@ export default function Home() {
                 <h2 className="text-24 text-gray-800 text-center font-semibold mb-16px">
                     Convoy Playground
                 </h2>
-                <p className="text-center text-14 text-gray-600 m-auto max-w-[460px]">
+                <p className="text-center text-14 text-gray-500 m-auto max-w-[502px]">
                     A playground for you to receive and send out webhook events,
                     test, debug and review webhook events; just like you will
                     with Convoy.
