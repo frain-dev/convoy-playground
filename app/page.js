@@ -221,8 +221,8 @@ export default function Home() {
                         <div className="min-w-[660px] mr-16px w-full  overflow-hidden rounded-8px bg-white-100 border border-primary-25">
                             <div className="min-h-[70vh]">
                                 <div className="w-full border-b border-gray-200">
-                                    <div className="flex items-center border-b border-gray-200 p-10px">
-                                        <div className="w-2/5 text-12 text-gray-400">
+                                    <div className="flex items-center border-b border-gray-200 py-10px px-16px">
+                                        <div className="w-2/5 text-14 text-gray-400">
                                             17 Jan, 2022
                                         </div>
                                         <div className="w-3/5"></div>
@@ -230,15 +230,15 @@ export default function Home() {
                                     {tableIndex.map((item) => (
                                         <div
                                             key={item}
-                                            className="flex items-center p-10px"
+                                            className="flex items-center py-10px px-16px"
                                         >
                                             <div className="w-1/5">
-                                                <div className="flex items-center justify-center px-12px py-2px text-12 font-medium w-fit rounded-24px bg-success-50 text-success-400">
+                                                <div className="flex items-center justify-center px-12px py-2px text-14 font-medium w-fit rounded-24px bg-success-50 text-success-400">
                                                     200 Success
                                                 </div>
                                             </div>
                                             <div className="w-1/2">
-                                                <div className="flex items-center justify-center px-12px py-2px text-12 font-medium max-w-[220px] whitespace-nowrap overflow-ellipsis rounded-24px bg-gray-50 text-gray-400">
+                                                <div className="flex items-center justify-center px-12px py-2px text-14 font-medium max-w-[240px] whitespace-nowrap overflow-ellipsis rounded-24px bg-gray-50 text-gray-400">
                                                     dfi30-9hfk89-ds0k89-k89k89...
                                                     <button className="border-none bg-transparent">
                                                         <img
@@ -250,7 +250,7 @@ export default function Home() {
                                                 </div>
                                             </div>
                                             <div className="w-1/5 ml-auto flex items-center justify-around">
-                                                <div className="text-12 text-gray-500">
+                                                <div className="text-14 text-gray-500">
                                                     10:45:11Am
                                                 </div>
                                                 <button className="border-none bg-transparent">
