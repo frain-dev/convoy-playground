@@ -21,6 +21,9 @@ module.exports = {
     ],
     theme: {
         extend: {
+            screens: {
+                desktop: { max: '1050px' }
+            },
             backgroundImage: {
                 "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
                 "gradient-conic":
