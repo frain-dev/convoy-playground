@@ -11,6 +11,10 @@ const nextConfig = {
     compiler: {
         styledComponents: true,
     },
+    env: {
+        PROJECT_TOKEN: process.env.PROJECT_TOKEN,
+        API_URL: process.env.API_URL
+    },
 };
 
 module.exports = nextConfig;
