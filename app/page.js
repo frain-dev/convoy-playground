@@ -1,6 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
 import CodeRenderer from "./components/prism";
+import Notification from "./components/notification";
 import { format } from "date-fns";
 
 import * as axios from "axios";
@@ -13,6 +14,7 @@ export default function Home() {
     const [showUrlForm, setUrlFormState] = useState(false);
     const [destinationUrl, setDestinationUrl] = useState("");
 
+    const [sources, setSources] = useState([]);
     const [activeSource, setActiveSources] = useState(null);
 
     const [subscriptions, setSubscriptions] = useState([]);
@@ -34,6 +36,11 @@ export default function Home() {
     const [fetchingEvents, setFetchingEvents] = useState(true);
     const [fetchingSources, setFetchingSources] = useState(true);
     const [retryingEvents, setRetryingEvents] = useState(true);
+    const [notification, setNotification] = useState({
+        message: "",
+        style: "success" | "info" | "warning" | "error",
+        show: false,
+    });
 
     const months = [
         "Jan",
@@ -107,7 +114,9 @@ export default function Home() {
             setDestinationUrl(event.target.value);
 
             setTimeout(() => {
-                activeSubscription ? editEndpoint() : createEndpoint();
+                activeSource?.destination_url
+                    ? editEndpoint()
+                    : createEndpoint();
             }, 1000);
         }
     };
@@ -123,6 +132,7 @@ export default function Home() {
         document.execCommand("copy");
         textField.remove();
     };
+
 
     const createSource = async () => {
         const sourcePayload = {
@@ -147,6 +157,10 @@ export default function Home() {
                 })
             ).data;
 
+            showNotification({
+                message: "New source created successfully!",
+                style: "success",
+            });
             setActiveSources(createSourceResponse.data);
             setFetchingSources(false);
             getEvents();
@@ -157,6 +171,48 @@ export default function Home() {
         }
     };
 
+    const getSources = useCallback(async () => {
+        setFetchingSources(true);
+        try {
+            const sourcesResponse = await (
+                await request({
+                    url: `/sources`,
+                })
+            ).data;
+
+            if (sourcesResponse.data.content.length === 0) {
+                createSource();
+            } else {
+                const sources = sourcesResponse.data.content;
+                if (subscriptions.length > 0) {
+                    subscriptions.forEach((subscription) => {
+                        sources.forEach((source) => {
+                            console.log(
+                                subscription.source_metadata.uid === source.uid
+                            );
+
+                            if (subscription.source_metadata.uid === source.uid)
+                                source["destination_url"] =
+                                    subscription.endpoint_metadata.target_url;
+                            else source["destination_url"] = "";
+                        });
+                    });
+                }
+
+                setSources(sources);
+                setActiveSources(sources[0]);
+                setFetchingSources(false);
+            }
+
+            getEvents();
+        } catch (error) {
+            setFetchingSources(false);
+
+            return error;
+        }
+    }, []);
+
+    // ftech subscriptions
     const getSubscriptions = useCallback(async () => {
         setFetchingSources(true);
         try {
@@ -166,20 +222,17 @@ export default function Home() {
                 })
             ).data;
 
-            if (subscriptionsResponse.data.content.length === 0) {
-                createSource();
-            } else {
-                setSubscriptions(subscriptionsResponse.data.content);
-                setActiveSubscription(subscriptionsResponse.data.content[0]);
-                setFetchingSources(false);
-                getEvents();
-            }
+            setSubscriptions(subscriptionsResponse.data.content);
+
+            setTimeout(() => {
+                getSources();
+            }, 1000);
         } catch (error) {
             setFetchingSources(false);
 
             return error;
         }
-    });
+    }, []);
 
     // fetch events
     const getEvents = useCallback(async (requestDetails) => {
@@ -269,10 +322,14 @@ export default function Home() {
         }
     };
 
-    const editEndpoint = async () => {
-        const editEndpointPayload = activeSubscription.endpoint_metadata;
+    const mapSourcesAndSubscriptions = () => {};
 
-        editEndpointPayload["target_url"] = destinationUrl;
+    const editEndpoint = async () => {
+        const editEndpointPayload = {
+            ...activeSubscription.endpoint_metadata,
+            url: destinationUrl,
+            name: activeSubscription.endpoint_metadata.title,
+        };
 
         try {
             const editEndpointResponse = await (
@@ -330,7 +387,7 @@ export default function Home() {
 
     useEffect(() => {
         getSubscriptions();
-    }, []);
+    }, [getSubscriptions]);
 
     return (
         <React.Fragment>
@@ -362,6 +419,7 @@ export default function Home() {
                         <div className="rounded-24px bg-gray-100 animate-pulse w-160px h-24px"></div>
                     </div>
                 )}
+
                 {/* sources/endpoints filter/form */}
                 {!fetchingSources && (
                     <div className="relative mt-24px w-fit m-auto">
@@ -371,10 +429,7 @@ export default function Home() {
                                     onClick={() => setSourceDropdownState(true)}
                                     className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50"
                                 >
-                                    {subscriptions.length === 0
-                                        ? activeSource?.name
-                                        : activeSubscription?.source_metadata
-                                              ?.name}
+                                    {activeSource?.name}
                                     <img
                                         src="/angle-down.svg"
                                         alt="angle-down icon"
@@ -388,19 +443,13 @@ export default function Home() {
                             </div>
                             <div className="flex items-center py-14px">
                                 <span className="text-gray-600 text-14 mr-10px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
-                                    {subscriptions.length === 0
-                                        ? activeSource?.url
-                                        : activeSubscription?.source_metadata
-                                              ?.url}
+                                    {activeSource?.url}
                                 </span>
                                 <button
                                     onClick={(event) =>
                                         copyToClipboard(
                                             event,
-                                            subscriptions.length === 0
-                                                ? activeSource?.url
-                                                : activeSubscription
-                                                      ?.source_metadata?.url
+                                            activeSource?.url
                                         )
                                     }
                                 >
@@ -417,23 +466,24 @@ export default function Home() {
                                 className="w-18px"
                             />
                             <div className="flex items-center justify-end">
-                                {!showUrlForm && !activeSubscription && (
-                                    <button
-                                        onClick={() => setUrlFormState(true)}
-                                        className="text-12 text-gray-600 rounded-8px py-6px px-12px border border-primary-50"
-                                    >
-                                        Add Destination
-                                    </button>
-                                )}
+                                {!showUrlForm &&
+                                    !activeSource.destination_url && (
+                                        <button
+                                            onClick={() =>
+                                                setUrlFormState(true)
+                                            }
+                                            className="text-12 text-gray-600 rounded-8px py-6px px-12px border border-primary-50"
+                                        >
+                                            Add Destination
+                                        </button>
+                                    )}
                                 {showUrlForm && (
                                     <div className="flex items-center">
                                         <input
                                             type="text"
                                             className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-100 pr-10px"
                                             placeholder={`${
-                                                activeSubscription
-                                                    ?.endpoint_metadata
-                                                    ?.target_url
+                                                activeSource?.destination_url
                                                     ? "Edit"
                                                     : "Enter"
                                             } Url`}
@@ -452,14 +502,10 @@ export default function Home() {
                                     </div>
                                 )}
                                 {!showUrlForm &&
-                                    activeSubscription?.endpoint_metadata && (
+                                    activeSource?.destination_url && (
                                         <div className="flex items-center w-full">
                                             <p className="text-gray-500 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
-                                                {
-                                                    activeSubscription
-                                                        ?.endpoint_metadata
-                                                        ?.target_url
-                                                }
+                                                {activeSource?.destination_url}
                                             </p>
 
                                             <button
@@ -478,27 +524,24 @@ export default function Home() {
                                     )}
                             </div>
                         </div>
-                        {showSourceDropdown && subscriptions.length && (
+                        {showSourceDropdown && sources.length && (
                             <div className="transition-all ease-in-out duration-300 absolute top-[110%] max-w-[560px] w-full bg-white-100 border border-primary-25 rounded-4px shadow-default z-10 h-fit">
-                                {subscriptions.map((item) => (
+                                {sources.map((item) => (
                                     <div
                                         key={item.uid}
                                         className="flex items-center px-14px py-10px"
                                     >
                                         <div className="relative group w-fit h-fit border-0">
                                             <input
-                                                id={item.source_metadata.uid}
+                                                id={item.uid}
                                                 type="radio"
-                                                value={item.source_metadata.uid}
+                                                value={item.uid}
                                                 checked={
                                                     activeSource?.uid ===
-                                                    item?.source_metadata?.uid
+                                                    item.uid
                                                 }
                                                 onChange={() => {
-                                                    setActiveSources(
-                                                        item?.source_metadata
-                                                    );
-                                                    setActiveSubscription(item);
+                                                    setActiveSources(item);
                                                     setSourceDropdownState(
                                                         false
                                                     );
@@ -506,24 +549,19 @@ export default function Home() {
                                                 className="opacity-0 absolute"
                                             />
                                             <label
-                                                htmlFor={
-                                                    item.source_metadata.uid
-                                                }
+                                                htmlFor={item.uid}
                                                 className="flex items-center "
                                             >
                                                 <div className="rounded-4px group-focus:shadow-focus--primary group-hover:shadow-focus--primary">
                                                     <div
                                                         className={`border border-primary-400 rounded-4px h-12px w-12px group-hover:bg-primary-25 transition-all duration-200 ${
                                                             activeSource?.uid ===
-                                                                item
-                                                                    .source_metadata
-                                                                    .uid ??
+                                                                item.uid ??
                                                             "bg-primary-25"
                                                         }`}
                                                     >
                                                         {activeSource?.uid ===
-                                                            item.source_metadata
-                                                                .uid && (
+                                                            item.uid && (
                                                             <img
                                                                 src="/checkmark-primary.svg"
                                                                 alt="checkmark icon"
@@ -532,30 +570,38 @@ export default function Home() {
                                                     </div>
                                                 </div>
                                                 <p className="text-14 text-gray-600 px-10px  border-r border-primary-25">
-                                                    {item.source_metadata.name}
+                                                    {item.name}
                                                 </p>
                                             </label>
                                         </div>
 
                                         <p className="text-12 text-gray-600 pl-10px max-w-[181px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
-                                            {item?.source_metadata?.url}
+                                            {item.url}
                                         </p>
                                         <img
                                             src="/arrow-right.svg"
                                             alt="arrow-right icon"
                                             className="mx-10px"
                                         />
-                                        <p className="text-12 text-gray-600 max-w-[153px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
-                                            {
-                                                item?.endpoint_metadata
-                                                    ?.target_url
-                                            }
+                                        <p
+                                            className={`text-12  max-w-[153px] w-full whitespace-nowrap  overflow-hidden text-ellipsis ${
+                                                item?.destination_url
+                                                    ? "text-gray-600"
+                                                    : "italic text-gray-300"
+                                            }`}
+                                        >
+                                            {item?.destination_url
+                                                ? item?.destination_url
+                                                : `no destination set...`}
                                         </p>
                                     </div>
                                 ))}
 
                                 <div className="flex px-14px py-10px mt-10px border-t border-primary-50">
-                                    <button className="flex items-center text-primary-400 text-14 px-0">
+                                    <button
+                                        className="flex items-center text-primary-400 text-14 px-0"
+                                        onClick={() => createSource()}
+                                    >
                                         <img
                                             src="/plus.svg"
                                             alt="plus icon"
@@ -872,13 +918,11 @@ export default function Home() {
                                     title="Header"
                                     language="language-json"
                                     code={selectedEvent.headers}
-                                    className="mb-26px"
                                 />
                                 <CodeRenderer
                                     title="Response"
                                     language="language-json"
                                     code={selectedEvent.data}
-                                    className="mb-26px"
                                 />
                             </div>
                         </div>
@@ -892,6 +936,8 @@ export default function Home() {
                     onClick={() => setSourceDropdownState(false)}
                 ></div>
             )}
+
+            {/* <Notification notification={notification}></Notification> */}
         </React.Fragment>
     );
 }
