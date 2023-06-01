@@ -1,7 +1,8 @@
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import CodeRenderer from "./components/prism";
 import Notification from "./components/notification";
+import General from "./services/general";
 import { format } from "date-fns";
 
 import * as axios from "axios";
@@ -35,12 +36,9 @@ export default function Home() {
 
     const [fetchingEvents, setFetchingEvents] = useState(true);
     const [fetchingSources, setFetchingSources] = useState(true);
-    const [retryingEvents, setRetryingEvents] = useState(true);
-    const [notification, setNotification] = useState({
-        message: "",
-        style: "success" | "info" | "warning" | "error",
-        show: false,
-    });
+    const [retryingEvents, setRetryingEvents] = useState(false);
+
+    const firstTimeRender = useRef(true);
 
     const months = [
         "Jan",
@@ -56,25 +54,6 @@ export default function Home() {
         "Nov",
         "Dec",
     ];
-
-    const apiURL = process.env.API_URL;
-    const token = process.env.PROJECT_TOKEN;
-
-    const request = _axios.create({
-        baseURL: apiURL,
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
-
-    request.interceptors.response.use(
-        (response) => {
-            return response;
-        },
-        (error) => {
-            return Promise.reject(error);
-        }
-    );
 
     const formatDate = (date) => {
         return format(new Date(date), "d LLL, yyyy");
@@ -112,17 +91,11 @@ export default function Home() {
     const handleKeyDown = (event) => {
         if (event.key === "Enter") {
             setDestinationUrl(event.target.value);
-
-            setTimeout(() => {
-                activeSource?.destination_url
-                    ? editEndpoint()
-                    : createEndpoint();
-            }, 1000);
         }
     };
 
     // copy item to clipboard
-    const copyToClipboard = (event, textToCopy) => {
+    const copyToClipboard = ({ event, textToCopy, notificationText }) => {
         event.stopPropagation();
         if (!textToCopy) return;
         const textField = document.createElement("textarea");
@@ -131,13 +104,14 @@ export default function Home() {
         textField.select();
         document.execCommand("copy");
         textField.remove();
+        General.showNotification({ message: notificationText, style: "info" });
     };
 
-
     const createSource = async () => {
+        const count = sources.length;
         const sourcePayload = {
             is_disabled: true,
-            name: "Source",
+            name: `Source${count > 0 ? "-" + count : ""}`,
             provider: null,
             type: "http",
             verifier: {
@@ -149,21 +123,17 @@ export default function Home() {
         setFetchingSources(true);
 
         try {
-            const createSourceResponse = await (
-                await request({
-                    url: "/sources",
-                    data: sourcePayload,
-                    method: "POST",
-                })
-            ).data;
+            await General.request({
+                url: "/sources",
+                body: sourcePayload,
+                method: "POST",
+            });
 
-            showNotification({
-                message: "New source created successfully!",
+            General.showNotification({
+                message: "New source created successfully",
                 style: "success",
             });
-            setActiveSources(createSourceResponse.data);
-            setFetchingSources(false);
-            getEvents();
+            getSources();
         } catch (error) {
             setFetchingSources(false);
 
@@ -174,37 +144,15 @@ export default function Home() {
     const getSources = useCallback(async () => {
         setFetchingSources(true);
         try {
-            const sourcesResponse = await (
-                await request({
-                    url: `/sources`,
-                })
-            ).data;
+            const sourcesResponse = await General.request({
+                url: `/sources?sort=AESC`,
+            });
 
             if (sourcesResponse.data.content.length === 0) {
                 createSource();
             } else {
-                const sources = sourcesResponse.data.content;
-                if (subscriptions.length > 0) {
-                    subscriptions.forEach((subscription) => {
-                        sources.forEach((source) => {
-                            console.log(
-                                subscription.source_metadata.uid === source.uid
-                            );
-
-                            if (subscription.source_metadata.uid === source.uid)
-                                source["destination_url"] =
-                                    subscription.endpoint_metadata.target_url;
-                            else source["destination_url"] = "";
-                        });
-                    });
-                }
-
-                setSources(sources);
-                setActiveSources(sources[0]);
-                setFetchingSources(false);
+                mapSourcesAndSubscriptions(sourcesResponse.data.content);
             }
-
-            getEvents();
         } catch (error) {
             setFetchingSources(false);
 
@@ -216,17 +164,12 @@ export default function Home() {
     const getSubscriptions = useCallback(async () => {
         setFetchingSources(true);
         try {
-            const subscriptionsResponse = await (
-                await request({
-                    url: `/subscriptions`,
-                })
-            ).data;
+            const subscriptionsResponse = await General.request({
+                url: `/subscriptions`,
+            });
 
             setSubscriptions(subscriptionsResponse.data.content);
-
-            setTimeout(() => {
-                getSources();
-            }, 1000);
+            firstTimeRender.current = false;
         } catch (error) {
             setFetchingSources(false);
 
@@ -252,12 +195,10 @@ export default function Home() {
 
         setFetchingEvents(true);
         try {
-            const eventsResponse = await (
-                await request({
-                    url: `/events?sort=AESC&${query ?? query}`,
-                    method: "GET",
-                })
-            ).data;
+            const eventsResponse = await General.request({
+                url: `/events?sort=AESC&${query ?? query}`,
+                method: "GET",
+            });
 
             // set events for display
             setEventsDisplayed(eventsResponse.data.content);
@@ -277,19 +218,27 @@ export default function Home() {
     }, []);
 
     // retry events
-    const retryEvent = async (event, eventId) => {
+    const retryEvent = async ({ event, eventId }) => {
+        console.log("i am being called");
         event.stopPropagation();
         setRetryingEvents(true);
         try {
-            await (
-                await request({
-                    method: "PUT",
-                    url: `/events/${eventId}/replay`,
-                })
-            ).data;
+            await General.request({
+                method: "PUT",
+                url: `/events/${eventId}/replay`,
+            });
+
+            General.showNotification({
+                message: "Event retried successfully",
+                style: "success",
+            });
 
             setRetryingEvents(false);
         } catch (error) {
+            General.showNotification({
+                message: error,
+                style: "error",
+            });
             setRetryingEvents(false);
 
             return error;
@@ -305,24 +254,35 @@ export default function Home() {
         };
 
         try {
-            const createEndpointResponse = await (
-                await request({
-                    url: "/endpoints",
-                    data: endpointPayload,
-                    method: "POST",
-                })
-            ).data;
+            const createEndpointResponse = await General.request({
+                url: "/endpoints",
+                body: endpointPayload,
+                method: "POST",
+            });
 
             setSelectedEndpoint(createEndpointResponse.data);
-            setTimeout(() => {
-                createSubscription();
-            }, 1000);
         } catch (error) {
             return error;
         }
     };
 
-    const mapSourcesAndSubscriptions = () => {};
+    const findActiveSubscription = () => {};
+
+    const mapSourcesAndSubscriptions = (sourceContent) => {
+        if (subscriptions.length > 0) {
+            subscriptions.forEach((subscription) => {
+                sourceContent.forEach((source) => {
+                    if (subscription.source_metadata.uid === source.uid)
+                        source["destination_url"] =
+                            subscription.endpoint_metadata.target_url;
+                    else source["destination_url"] = "";
+                });
+            });
+        }
+        setSources(sourceContent);
+        setActiveSources(sourceContent[0]);
+        setFetchingSources(false);
+    };
 
     const editEndpoint = async () => {
         const editEndpointPayload = {
@@ -332,13 +292,11 @@ export default function Home() {
         };
 
         try {
-            const editEndpointResponse = await (
-                await request({
-                    url: `/endpoints/${activeSubscription.endpoint_metadata.uid}`,
-                    data: editEndpointPayload,
-                    method: "PUT",
-                })
-            ).data;
+            await General.request({
+                url: `/endpoints/${activeSubscription.endpoint_metadata.uid}`,
+                data: editEndpointPayload,
+                method: "PUT",
+            });
         } catch (error) {
             return error;
         }
@@ -352,19 +310,23 @@ export default function Home() {
                 event_types: ["*"],
                 filter: {},
             },
-            name: "Subscription X",
+            name: "Subscription",
             source_id: activeSource?.uid,
         };
 
         try {
-            const createSubscriptionResponse = await (
-                await request({
-                    url: "/subscriptions",
-                    data: subscriptionPayload,
-                    method: "POST",
-                })
-            ).data;
+            await General.request({
+                url: "/subscriptions",
+                data: subscriptionPayload,
+                method: "POST",
+            });
 
+            General.showNotification({
+                message: "Destination Url added successfully",
+                style: "success",
+            });
+
+            setUrlFormState(false);
             getSubscriptions();
         } catch (error) {
             return error;
@@ -376,14 +338,30 @@ export default function Home() {
         next_page_cursor,
         prev_page_cursor,
     }) => {
-        const paginationDetails = {
+        getEvents({
             direction,
             next_page_cursor,
             prev_page_cursor,
-        };
-
-        getEvents(paginationDetails);
+        });
     };
+
+    useEffect(() => {
+        if (destinationUrl)
+            activeSource?.destination_url ? editEndpoint() : createEndpoint();
+    }, [destinationUrl]);
+
+    useEffect(() => {
+        if (selectedEndpoint) createSubscription();
+    }, [selectedEndpoint]);
+
+    useEffect(() => {
+        // if (firstTimeRender.current) return;
+        getSources();
+    }, [subscriptions]);
+
+    useEffect(() => {
+        getEvents();
+    }, [getEvents]);
 
     useEffect(() => {
         getSubscriptions();
@@ -447,10 +425,12 @@ export default function Home() {
                                 </span>
                                 <button
                                     onClick={(event) =>
-                                        copyToClipboard(
+                                        copyToClipboard({
                                             event,
-                                            activeSource?.url
-                                        )
+                                            textToCopy: activeSource?.url,
+                                            notificationText:
+                                                "Source URL has been copied to clipboard.",
+                                        })
                                     }
                                 >
                                     <img
@@ -467,7 +447,7 @@ export default function Home() {
                             />
                             <div className="flex items-center justify-end">
                                 {!showUrlForm &&
-                                    !activeSource.destination_url && (
+                                    !activeSource?.destination_url && (
                                         <button
                                             onClick={() =>
                                                 setUrlFormState(true)
@@ -477,30 +457,31 @@ export default function Home() {
                                             Add Destination
                                         </button>
                                     )}
-                                {showUrlForm && (
-                                    <div className="flex items-center">
-                                        <input
-                                            type="text"
-                                            className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-100 pr-10px"
-                                            placeholder={`${
-                                                activeSource?.destination_url
-                                                    ? "Edit"
-                                                    : "Enter"
-                                            } Url`}
-                                            onKeyDown={handleKeyDown}
-                                        />
-                                        <button
-                                            disabled={!destinationUrl}
-                                            onClick={() => createEndpoint()}
-                                            className="ml-auto"
-                                        >
-                                            <img
-                                                src="/check.svg"
-                                                alt="checkmark icon"
+                                {showUrlForm &&
+                                    !activeSource?.destination_url && (
+                                        <div className="flex items-center">
+                                            <input
+                                                type="text"
+                                                className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-100 pr-10px"
+                                                placeholder={`${
+                                                    activeSource?.destination_url
+                                                        ? "Edit"
+                                                        : "Enter"
+                                                } Url`}
+                                                onKeyDown={handleKeyDown}
                                             />
-                                        </button>
-                                    </div>
-                                )}
+                                            <button
+                                                disabled={!destinationUrl}
+                                                onClick={() => createEndpoint()}
+                                                className="ml-auto"
+                                            >
+                                                <img
+                                                    src="/check.svg"
+                                                    alt="checkmark icon"
+                                                />
+                                            </button>
+                                        </div>
+                                    )}
                                 {!showUrlForm &&
                                     activeSource?.destination_url && (
                                         <div className="flex items-center w-full">
@@ -639,7 +620,7 @@ export default function Home() {
                                 <div className="w-full border-b border-gray-200">
                                     <div className="flex items-center border-b border-t border-gray-200 py-10px px-16px">
                                         <div className="w-2/5 text-12 text-gray-400">
-                                            <div className="rounded-24px bg-gray-100 animate-pulse h-24px mb-24px"></div>
+                                            <div className="rounded-24px bg-gray-100 animate-pulse h-24px"></div>
                                         </div>
                                         <div className="w-3/5"></div>
                                     </div>
@@ -715,8 +696,13 @@ export default function Home() {
                                                                         event
                                                                     ) =>
                                                                         copyToClipboard(
-                                                                            event,
-                                                                            item?.event_type
+                                                                            {
+                                                                                event,
+                                                                                textToCopy:
+                                                                                    item?.event_type,
+                                                                                notificationText:
+                                                                                    "Event ID has been copied to clipboard.",
+                                                                            }
                                                                         )
                                                                     }
                                                                 >
@@ -748,15 +734,21 @@ export default function Home() {
                                                                 onClick={(
                                                                     event
                                                                 ) =>
-                                                                    retryEvent(
+                                                                    retryEvent({
                                                                         event,
-                                                                        item.uid
-                                                                    )
+                                                                        eventId:
+                                                                            item.uid,
+                                                                    })
                                                                 }
                                                             >
                                                                 <img
                                                                     src="/refresh.svg"
                                                                     alt="refresh icon"
+                                                                    className={
+                                                                        retryingEvents
+                                                                            ? "animate-spin-slow"
+                                                                            : ""
+                                                                    }
                                                                 />
                                                             </button>
                                                         </div>
@@ -900,14 +892,20 @@ export default function Home() {
                                 <button
                                     disabled={retryingEvents}
                                     onClick={(event) =>
-                                        retryEvent(event, selectedEvent.uid)
+                                        retryEvent({
+                                            event,
+                                            eventId: selectedEvent.uid,
+                                        })
                                     }
-                                    className="flex items-center rounded-4px pl-10px pr-16px py-2px mr-16px bg-primary-25 text-12 text-primary-400"
+                                    className="flex items-center rounded-4px pl-10px pr-16px py-2px mr-16px bg-primary-25 text-12 text-primary-400 disabled:opacity-50"
                                 >
                                     <img
                                         src="/refresh-primary.svg"
                                         alt="refresh icon"
-                                        className="mr-4px"
+                                        className={`mr-4px ${
+                                            retryingEvents ??
+                                            "animate-spin-slow"
+                                        }`}
                                     />
                                     Retry
                                 </button>
@@ -937,7 +935,7 @@ export default function Home() {
                 ></div>
             )}
 
-            {/* <Notification notification={notification}></Notification> */}
+            <Notification></Notification>
         </React.Fragment>
     );
 }

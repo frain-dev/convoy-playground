@@ -22,7 +22,7 @@ module.exports = {
     theme: {
         extend: {
             screens: {
-                desktop: { max: '1050px' }
+                desktop: { max: "1050px" },
             },
             backgroundImage: {
                 "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
@@ -140,6 +140,9 @@ module.exports = {
                 black: "#16192C",
                 "dark-grey": "#B2B2B2",
                 transparent: "transparent",
+            },
+            animation: {
+                "spin-slow": "spin 3s linear infinite",
             },
         },
     },
