@@ -37,6 +37,9 @@ export default function Home() {
     const [fetchingEvents, setFetchingEvents] = useState(true);
     const [fetchingSources, setFetchingSources] = useState(true);
     const [retryingEvents, setRetryingEvents] = useState(false);
+    const [addingDestinationUrl, setAddingDestinationUrl] = useState(false);
+    const [sourceErrorState, setSourceErrorState] = useState(false);
+    const [eventsErrorState, setEventsErrorState] = useState(false);
 
     const firstTimeRender = useRef(true);
 
@@ -108,6 +111,7 @@ export default function Home() {
     };
 
     const createSource = async () => {
+        setSourceErrorState(false);
         const count = sources.length;
         const sourcePayload = {
             is_disabled: true,
@@ -136,32 +140,31 @@ export default function Home() {
             getSources();
         } catch (error) {
             setFetchingSources(false);
-
+            if (sources.length === 0) setEventsErrorState(true);
             return error;
         }
     };
 
     const getSources = useCallback(async () => {
+        setSourceErrorState(false);
         setFetchingSources(true);
         try {
             const sourcesResponse = await General.request({
                 url: `/sources?sort=AESC`,
             });
 
-            if (sourcesResponse.data.content.length === 0) {
-                createSource();
-            } else {
-                mapSourcesAndSubscriptions(sourcesResponse.data.content);
-            }
+            if (sourcesResponse.data.content.length === 0) createSource();
+            else mapSourcesAndSubscriptions(sourcesResponse.data.content);
         } catch (error) {
             setFetchingSources(false);
-
+            setSourceErrorState(true);
             return error;
         }
     }, []);
 
     // ftech subscriptions
     const getSubscriptions = useCallback(async () => {
+        setEventsErrorState(false);
         setFetchingSources(true);
         try {
             const subscriptionsResponse = await General.request({
@@ -169,16 +172,19 @@ export default function Home() {
             });
 
             setSubscriptions(subscriptionsResponse.data.content);
+            console.log(subscriptions);
             firstTimeRender.current = false;
         } catch (error) {
             setFetchingSources(false);
-
+            if (sources.length === 0) setEventsErrorState(true);
             return error;
         }
     }, []);
 
     // fetch events
     const getEvents = useCallback(async (requestDetails) => {
+        setEventsErrorState(false);
+
         let query = "";
         if (requestDetails) {
             const cleanedQuery = Object.fromEntries(
@@ -213,13 +219,13 @@ export default function Home() {
             setFetchingEvents(false);
         } catch (error) {
             setFetchingEvents(false);
+            setEventsErrorState(true);
             return error;
         }
     }, []);
 
     // retry events
     const retryEvent = async ({ event, eventId }) => {
-        console.log("i am being called");
         event.stopPropagation();
         setRetryingEvents(true);
         try {
@@ -253,6 +259,7 @@ export default function Home() {
             url: destinationUrl,
         };
 
+        setAddingDestinationUrl(true);
         try {
             const createEndpointResponse = await General.request({
                 url: "/endpoints",
@@ -262,25 +269,34 @@ export default function Home() {
 
             setSelectedEndpoint(createEndpointResponse.data);
         } catch (error) {
+            setAddingDestinationUrl(false);
+
             return error;
         }
     };
 
-    const findActiveSubscription = () => {};
+    const findActiveSubscription = () => {
+        const activeSourceSubscription =
+            subscriptions.find(
+                (item) => item.source_metadata.uid === activeSource.uid
+            ) || null;
+        setActiveSubscription(activeSourceSubscription);
+    };
 
     const mapSourcesAndSubscriptions = (sourceContent) => {
+        let sourcePayload = sourceContent;
         if (subscriptions.length > 0) {
-            subscriptions.forEach((subscription) => {
-                sourceContent.forEach((source) => {
-                    if (subscription.source_metadata.uid === source.uid)
-                        source["destination_url"] =
-                            subscription.endpoint_metadata.target_url;
-                    else source["destination_url"] = "";
-                });
+            sourcePayload.forEach((source) => {
+                const sourceDestinationUrl = subscriptions.find(
+                    (sub) => sub.source_metadata.uid === source.uid
+                )?.endpoint_metadata.target_url;
+
+                source["destination_url"] = sourceDestinationUrl || null;
             });
         }
-        setSources(sourceContent);
-        setActiveSources(sourceContent[0]);
+        setSources(sourcePayload);
+        if (!activeSource) setActiveSources(sourceContent[0]);
+
         setFetchingSources(false);
     };
 
@@ -313,22 +329,26 @@ export default function Home() {
             name: "Subscription",
             source_id: activeSource?.uid,
         };
-
+        setAddingDestinationUrl(true);
         try {
             await General.request({
                 url: "/subscriptions",
-                data: subscriptionPayload,
+                body: subscriptionPayload,
                 method: "POST",
             });
+
+            activeSource["destination_url"] = selectedEndpoint?.uid;
+            setActiveSources(activeSource);
 
             General.showNotification({
                 message: "Destination Url added successfully",
                 style: "success",
             });
-
+            setAddingDestinationUrl(false);
             setUrlFormState(false);
             getSubscriptions();
         } catch (error) {
+            setAddingDestinationUrl(false);
             return error;
         }
     };
@@ -346,6 +366,10 @@ export default function Home() {
     };
 
     useEffect(() => {
+        findActiveSubscription();
+    }, [activeSource]);
+
+    useEffect(() => {
         if (destinationUrl)
             activeSource?.destination_url ? editEndpoint() : createEndpoint();
     }, [destinationUrl]);
@@ -355,7 +379,7 @@ export default function Home() {
     }, [selectedEndpoint]);
 
     useEffect(() => {
-        // if (firstTimeRender.current) return;
+        if (firstTimeRender.current) return;
         getSources();
     }, [subscriptions]);
 
@@ -505,6 +529,9 @@ export default function Home() {
                                     )}
                             </div>
                         </div>
+                        {/* <div className="absolute flex backdrop-blur-sm rounded-4px w-full h-50px top-0 bg-primary-100 bg-opacity-50 items-center flex-col justify-center p-24px transition-all duration-300">
+                            <img src="/error-icon.svg" alt="danger icon" />
+                        </div> */}
                         {showSourceDropdown && sources.length && (
                             <div className="transition-all ease-in-out duration-300 absolute top-[110%] max-w-[560px] w-full bg-white-100 border border-primary-25 rounded-4px shadow-default z-10 h-fit">
                                 {sources.map((item) => (
@@ -647,19 +674,20 @@ export default function Home() {
                         </div>
                     )}
 
+                    {/* events list  */}
                     {!fetchingEvents && displayedEvents?.length > 0 && (
                         <div className="min-w-[660px] mr-16px desktop:mr-0 w-full  overflow-hidden rounded-8px bg-white-100 border border-primary-25">
                             <div className="min-h-[70vh]">
                                 <div className="w-full border-b border-gray-200">
                                     {displayedEvents.map((event) => (
-                                        <div key={event?.date}>
+                                        <div key={event.date}>
                                             <div className="flex items-center border-b border-t border-gray-200 py-10px px-16px">
                                                 <div className="w-2/5 text-12 text-gray-400">
                                                     {formatDate(event?.date)}
                                                 </div>
                                                 <div className="w-3/5"></div>
                                             </div>
-                                            {event?.content.map(
+                                            {event.content.map(
                                                 (item, index) => (
                                                     <div
                                                         id={"event" + index}
@@ -759,6 +787,8 @@ export default function Home() {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* pagination  */}
                             <div className="flex items-center justify-between mt-16px px-10px pb-10px">
                                 {(eventsPagination.has_next_page ||
                                     eventsPagination.has_prev_page) && (
@@ -862,6 +892,7 @@ export default function Home() {
                         </div>
                     )}
 
+                    {/* event details  */}
                     {!fetchingEvents && displayedEvents?.length > 0 && (
                         <div className="max-w-[500px] w-full min-h-[70vh] rounded-8px bg-white-100 border border-primary-25">
                             <div className="flex items-center justify-between border-b border-gray-200">
