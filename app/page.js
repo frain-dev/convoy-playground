@@ -5,13 +5,10 @@ import Notification from "./components/notification";
 import General from "./services/general";
 import { format } from "date-fns";
 
-import * as axios from "axios";
-const _axios = axios.default;
-
 export default function Home() {
-    const tabs = ["details"];
+    const tabs = ["request", "response"];
     const tableIndex = [0, 1, 2, 3, 4, 5];
-    const [activeTab, setActiveTab] = useState("details");
+    const [activeTab, setActiveTab] = useState("request");
     const [showUrlForm, setUrlFormState] = useState(false);
     const [showEditUrlForm, setShowEditUrlForm] = useState(false);
     const [destinationUrl, setDestinationUrl] = useState("");
@@ -30,19 +27,35 @@ export default function Home() {
         per_page: 20,
         prev_page_cursor: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
     });
+
+    const [eventDeliveryPagination, setEventDeliveryPagination] = useState({
+        has_next_page: false,
+        has_prev_page: false,
+        next_page_cursor: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+        per_page: 20,
+        prev_page_cursor: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+    });
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [selectedEndpoint, setSelectedEndpoint] = useState(null);
+    const [selectedDeliveryAttempt, setSelectedDeliveryAttempt] = useState({
+        request_http_header: null,
+        response_http_header: null,
+        response_data: null,
+    });
 
     const [showSourceDropdown, setSourceDropdownState] = useState(false);
 
     const [fetchingEvents, setFetchingEvents] = useState(true);
     const [fetchingSources, setFetchingSources] = useState(true);
     const [retryingEvents, setRetryingEvents] = useState(false);
+    const [fetchingDeliveryAttempt, setFetchingDeliveryAttempt] =
+        useState(false);
     const [addingDestinationUrl, setAddingDestinationUrl] = useState(false);
     const [sourceErrorState, setSourceErrorState] = useState(false);
     const [eventsErrorState, setEventsErrorState] = useState(false);
 
     const firstTimeRender = useRef(true);
+    const inputRef = useRef(null);
 
     const months = [
         "Jan",
@@ -93,9 +106,12 @@ export default function Home() {
     };
 
     const handleKeyDown = (event) => {
-        if (event.key === "Enter") {
+        if (event?.key === "Enter") {
             setDestinationUrl(event.target.value);
+            return;
         }
+        const setUrl = inputRef.current.value;
+        setDestinationUrl(setUrl);
     };
 
     // copy item to clipboard
@@ -173,8 +189,6 @@ export default function Home() {
                 sourceResponse.value,
                 subscriptionResponse.value
             );
-
-        console.log(subscriptionResponse, sourceResponse);
     }, []);
 
     const mapSourcesAndSubscriptions = (sourceContent, subscriptionContent) => {
@@ -193,7 +207,27 @@ export default function Home() {
     };
 
     // fetch events
-    const getEvents = useCallback(async (requestDetails) => {
+    const getEvents = async (eventQuery) => {
+        setEventsErrorState(false);
+
+        setFetchingEvents(true);
+        try {
+            const eventsResponse = await General.request({
+                url: `/events?sort=AESC&${eventQuery ?? eventQuery}`,
+                method: "GET",
+            });
+
+            setFetchingEvents(false);
+
+            return eventsResponse.data;
+        } catch (error) {
+            setFetchingEvents(false);
+            setEventsErrorState(true);
+            return error;
+        }
+    };
+
+    const getEventDeliveries = async (requestDetails) => {
         setEventsErrorState(false);
 
         let query = "";
@@ -213,42 +247,134 @@ export default function Home() {
         setFetchingEvents(true);
         try {
             const eventsResponse = await General.request({
-                url: `/events?sort=AESC&${query ?? query}`,
+                url: `/eventdeliveries?sort=AESC&${
+                    eventDeliveryQuery ?? query
+                }`,
                 method: "GET",
             });
 
-            // set events for display
-            setEventsDisplayed(eventsResponse.data.content);
+            const eventDeliveries = eventsResponse.data;
 
-            // set events pagination
-            setEventsPagination(eventsResponse.data.pagination);
-
-            // select first event amd set as active event
-            const activeEvent = eventsResponse.data.content[0];
-            setSelectedEvent(activeEvent);
-
-            setFetchingEvents(false);
+            return eventDeliveries;
         } catch (error) {
             setFetchingEvents(false);
             setEventsErrorState(true);
             return error;
         }
-    }, []);
+    };
+
+    const cleanQuery = (requestDetails) => {
+        const cleanedQuery = Object.fromEntries(
+            Object.entries(requestDetails).filter(
+                ([_, q]) =>
+                    q !== "" &&
+                    q !== undefined &&
+                    q !== null &&
+                    typeof q !== "object"
+            )
+        );
+        query = new URLSearchParams(cleanedQuery).toString();
+        return query;
+    };
+
+    const getEventsAndEventDeliveries = useCallback(
+        async (eventsRequest, eventDeliveryRequest) => {
+            // handle queries
+            const eventsQuery = eventsRequest ? cleanQuery(eventsRequest) : "";
+            const eventDeliveryQuery = eventDeliveryRequest
+                ? cleanQuery(eventDeliveryRequest)
+                : "";
+
+            const [eventDeliveryResponse, eventResponse] =
+                await Promise.allSettled([
+                    getEventDeliveries(eventDeliveryQuery),
+                    getEvents(eventsQuery),
+                ]);
+
+            const eventContent = eventResponse.value?.content;
+            const eventDeliveryContent = eventDeliveryResponse.value?.content;
+
+            if (eventContent.length > 0 && eventDeliveryContent.length > 0) {
+                eventContent.forEach((event) => {
+                    eventDeliveryContent.forEach((eventDel) => {
+                        if (event.event_type === eventDel.event_id) {
+                            event["status"] = eventDel.status || null;
+                            event["metadata"] = eventDel.metadata;
+                            event["delivery_uid"] = eventDel.uid;
+                        }
+                    });
+                });
+            }
+
+            // set events for display
+            setEventsDisplayed(eventContent);
+
+            // set events pagination
+            setEventsPagination(eventResponse.value?.pagination);
+            setEventDeliveryPagination(eventDeliveryResponse.value?.pagination);
+
+            // select first event amd set as active event
+            const activeEvent = eventContent[0];
+            getDeliveryAttempts(activeEvent);
+
+            console.log(eventDeliveryResponse);
+            console.log(eventResponse);
+        },
+        []
+    );
+
+    const getDeliveryAttempts = async (eventPayload) => {
+        setSelectedEvent(eventPayload);
+
+        if (!eventPayload.delivery_uid) return;
+
+        setFetchingDeliveryAttempt(true);
+        try {
+            const deliveryAttemptRes = await General.request({
+                method: "GET",
+                url: `/eventdeliveries/${eventPayload.delivery_uid}/deliveryattempts`,
+            });
+
+            const { request_http_header, response_http_header, response_data } =
+                deliveryAttemptRes.data[0];
+
+            setSelectedDeliveryAttempt({
+                request_http_header,
+                response_http_header,
+                response_data,
+            });
+
+            setFetchingDeliveryAttempt(false);
+        } catch (error) {
+            setFetchingDeliveryAttempt(false);
+            return error;
+        }
+    };
 
     // retry events
-    const retryEvent = async ({ event, eventId }) => {
+    const retryEvent = async ({ event, eventId, eventStatus }) => {
         event.stopPropagation();
         setRetryingEvents(true);
+
+        const payload = { ids: [eventId] };
         try {
-            await General.request({
-                method: "PUT",
-                url: `/events/${eventId}/replay`,
-            });
+            eventStatus && eventStatus === "Success"
+                ? await General.request({
+                      method: "POST",
+                      url: `/eventdeliveries/forceresend`,
+                      body: payload,
+                  })
+                : await General.request({
+                      method: "PUT",
+                      url: `/eventdeliveries/${eventId}/resend`,
+                  });
 
             General.showNotification({
                 message: "Event retried successfully",
                 style: "success",
             });
+
+            getEventsAndEventDeliveries();
 
             setRetryingEvents(false);
         } catch (error) {
@@ -262,16 +388,15 @@ export default function Home() {
         }
     };
 
-
-
     const findActiveSubscription = () => {
+        setUrlFormState(false);
+        setShowEditUrlForm(false);
         const activeSourceSubscription =
             subscriptions.find(
                 (item) => item.source_metadata.uid === activeSource.uid
             ) || null;
         setActiveSubscription(activeSourceSubscription);
     };
-
 
     const createEndpoint = async () => {
         const endpointPayload = {
@@ -293,31 +418,6 @@ export default function Home() {
         } catch (error) {
             setAddingDestinationUrl(false);
 
-            return error;
-        }
-    };
-
-    const editEndpoint = async () => {
-        const editEndpointPayload = {
-            ...activeSubscription.endpoint_metadata,
-            url: destinationUrl,
-            name: activeSubscription.endpoint_metadata.title,
-        };
-
-        try {
-            await General.request({
-                url: `/endpoints/${activeSubscription.endpoint_metadata.uid}`,
-                body: editEndpointPayload,
-                method: "PUT",
-            });
-
-            General.showNotification({
-                message: "URL updated successfully",
-                style: "success",
-            });
-            setShowEditUrlForm(false);
-            getSubscriptionAndSources();
-        } catch (error) {
             return error;
         }
     };
@@ -376,15 +476,41 @@ export default function Home() {
                 method: "POST",
             });
 
-            activeSource["destination_url"] = selectedEndpoint?.uid;
-            setActiveSources(activeSource);
-
             General.showNotification({
                 message: "Destination Url added successfully",
                 style: "success",
             });
+
             setAddingDestinationUrl(false);
             setUrlFormState(false);
+            getSubscriptionAndSources();
+        } catch (error) {
+            setAddingDestinationUrl(false);
+            return error;
+        }
+    };
+
+    const editSubscription = async () => {
+        const editSubscriptionPayload = {
+            ...activeSubscription,
+            endpoint_id: selectedEndpoint?.uid,
+        };
+
+        try {
+            await General.request({
+                url: `/subscriptions${activeSubscription.uid}`,
+                body: editSubscriptionPayload,
+                method: "PUT",
+            });
+
+            General.showNotification({
+                message: "Destination Url updated successfully",
+                style: "success",
+            });
+
+            setAddingDestinationUrl(false);
+            setUrlFormState(false);
+            setShowEditUrlForm(false);
             getSubscriptionAndSources();
         } catch (error) {
             setAddingDestinationUrl(false);
@@ -397,6 +523,7 @@ export default function Home() {
         next_page_cursor,
         prev_page_cursor,
     }) => {
+
         getEvents({
             direction,
             next_page_cursor,
@@ -414,22 +541,65 @@ export default function Home() {
         // getSubscriptionAndSources()
     };
 
+    const getStatusObject = (status) => {
+        const statusTypes = {
+            warning: "bg-warning-50 text-warning-400",
+            error: "bg-danger-50 text-danger-400",
+            default: "border border-gray-200 text-gray-400 bg-gray-50",
+            success: "bg-success-50 text-success-400",
+        };
+        let statusObj = { status, class: statusTypes.default };
+        switch (status) {
+            case "Success":
+                statusObj = {
+                    status: "200 success",
+                    class: statusTypes.success,
+                };
+                break;
+            case "Pending":
+                statusObj = {
+                    status,
+                    class: statusTypes.warning,
+                };
+                type = "warning";
+                break;
+            case "Failed":
+            case "Failure":
+                statusObj = {
+                    status,
+                    class: statusTypes.danger,
+                };
+                break;
+            default:
+                statusObj = {
+                    status,
+                    class: statusTypes.default,
+                };
+                break;
+        }
+
+        return statusObj;
+    };
+
     useEffect(() => {
         findActiveSubscription();
     }, [activeSource]);
 
     useEffect(() => {
-        if (destinationUrl)
-            activeSource?.destination_url ? editEndpoint() : createEndpoint();
+        if (destinationUrl) createEndpoint();
     }, [destinationUrl]);
 
     useEffect(() => {
-        if (selectedEndpoint) createSubscription();
+        if (selectedEndpoint) {
+            activeSource?.destinationUrl
+                ? editSubscription()
+                : createSubscription();
+        }
     }, [selectedEndpoint]);
 
     useEffect(() => {
-        getEvents();
-    }, [getEvents]);
+        getEventsAndEventDeliveries();
+    }, [getEventsAndEventDeliveries]);
 
     useEffect(() => {
         getSubscriptionAndSources();
@@ -519,6 +689,7 @@ export default function Home() {
                             />
                             <div className="flex items-center justify-end">
                                 {!showUrlForm &&
+                                    !showEditUrlForm &&
                                     !activeSource?.destination_url && (
                                         <button
                                             onClick={() =>
@@ -533,7 +704,8 @@ export default function Home() {
                                     <div className="flex items-center">
                                         <input
                                             type="text"
-                                            className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-100 pr-10px"
+                                            ref={inputRef}
+                                            className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-300 pr-10px"
                                             placeholder={`${
                                                 activeSource?.destination_url
                                                     ? "Edit"
@@ -542,8 +714,8 @@ export default function Home() {
                                             onKeyDown={handleKeyDown}
                                         />
                                         <button
-                                            disabled={!destinationUrl}
-                                            onClick={() => createEndpoint()}
+                                            disabled={addingDestinationUrl}
+                                            onClick={() => handleKeyDown()}
                                             className="ml-auto"
                                         >
                                             <img
@@ -741,112 +913,122 @@ export default function Home() {
                         <div className="min-w-[660px] mr-16px desktop:mr-0 w-full  overflow-hidden rounded-8px bg-white-100 border border-primary-25">
                             <div className="min-h-[70vh]">
                                 <div className="w-full border-b border-gray-200">
-                                    {displayedEvents.map((event) => (
-                                        <div key={event.date}>
-                                            <div className="flex items-center border-b border-t border-gray-200 py-10px px-16px">
-                                                <div className="w-2/5 text-12 text-gray-400">
-                                                    {formatDate(event?.date)}
+                                    {displayedEvents.map(
+                                        (event, eventIndex) => (
+                                            <div key={event.date}>
+                                                <div
+                                                    className={`flex items-center border-b border-gray-200 py-10px px-16px ${
+                                                        eventIndex > 0
+                                                            ? "border-t"
+                                                            : ""
+                                                    }`}
+                                                >
+                                                    <div className="w-2/5 text-12 text-gray-400">
+                                                        {formatDate(
+                                                            event?.date
+                                                        )}
+                                                    </div>
+                                                    <div className="w-3/5"></div>
                                                 </div>
-                                                <div className="w-3/5"></div>
-                                            </div>
-                                            {event.content.map(
-                                                (item, index) => (
-                                                    <div
-                                                        id={"event" + index}
-                                                        key={index}
-                                                        className={`flex items-center p-16px ${
-                                                            selectedEvent.uid ===
-                                                            item.uid
-                                                                ? "bg-primary-25"
-                                                                : ""
-                                                        }`}
-                                                        onClick={() => {
-                                                            setSelectedEvent(
-                                                                item
-                                                            );
-                                                        }}
-                                                    >
-                                                        <div className="w-1/5">
-                                                            {
-                                                                item
-                                                                    ?.source_metadata
-                                                                    ?.name
-                                                            }
-                                                        </div>
-                                                        <div className="w-1/2">
-                                                            <div className="flex items-center justify-center px-12px py-2px w-fit text-gray-600">
-                                                                <span className="text-14  max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">
-                                                                    {
-                                                                        item?.event_type
-                                                                    }
-                                                                </span>
-                                                                <button
-                                                                    className="border-none bg-transparent"
-                                                                    onClick={(
-                                                                        event
-                                                                    ) =>
-                                                                        copyToClipboard(
-                                                                            {
-                                                                                event,
-                                                                                textToCopy:
-                                                                                    item?.event_type,
-                                                                                notificationText:
-                                                                                    "Event ID has been copied to clipboard.",
-                                                                            }
-                                                                        )
-                                                                    }
+                                                {event.content.map(
+                                                    (item, index) => (
+                                                        <div
+                                                            id={"event" + index}
+                                                            key={index}
+                                                            className={`flex items-center p-16px hover:cursor-pointer ${
+                                                                selectedEvent.uid ===
+                                                                item.uid
+                                                                    ? "bg-primary-25"
+                                                                    : ""
+                                                            }`}
+                                                            onClick={() => {
+                                                                getDeliveryAttempts(
+                                                                    item
+                                                                );
+                                                            }}
+                                                        >
+                                                            <div className="w-1/5">
+                                                                <div
+                                                                    className={`flex items-center justify-center px-12px py-2px text-14 w-fit rounded-24px ${
+                                                                        getStatusObject(
+                                                                            item.status
+                                                                        ).class
+                                                                    }`}
                                                                 >
-                                                                    <img
-                                                                        src="/copy.svg"
-                                                                        alt="copy icon"
-                                                                        className="ml-4px h-14px w-14px"
-                                                                    />
-                                                                </button>
+                                                                    {
+                                                                        getStatusObject(
+                                                                            item.status
+                                                                        ).status
+                                                                    }
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="w-1/5 ml-auto flex items-center justify-around">
-                                                            <div className="text-14 text-gray-500">
-                                                                {formatTime(
-                                                                    item?.created_at
-                                                                )}
+                                                            <div className="w-1/2">
+                                                                <div className="flex items-center justify-center px-12px py-2px w-fit text-gray-600">
+                                                                    <span className="text-14  max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">
+                                                                        {
+                                                                            item?.event_type
+                                                                        }
+                                                                    </span>
+                                                                    <button
+                                                                        className="border-none bg-transparent"
+                                                                        onClick={(
+                                                                            event
+                                                                        ) =>
+                                                                            copyToClipboard(
+                                                                                {
+                                                                                    event,
+                                                                                    textToCopy:
+                                                                                        item?.event_type,
+                                                                                    notificationText:
+                                                                                        "Event ID has been copied to clipboard.",
+                                                                                }
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <img
+                                                                            src="/copy.svg"
+                                                                            alt="copy icon"
+                                                                            className="ml-4px h-14px w-14px"
+                                                                        />
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                            <button className="border-none bg-transparent">
+                                                            <div className="w-1/5 ml-auto flex items-center justify-around">
+                                                                <div className="text-14 text-gray-500">
+                                                                    {formatTime(
+                                                                        item?.created_at
+                                                                    )}
+                                                                </div>
                                                                 <img
                                                                     src="/arrow-up-right.svg"
                                                                     alt="arrow right up icon"
+                                                                    className={
+                                                                        item.status
+                                                                            ? "visible"
+                                                                            : "invisible"
+                                                                    }
                                                                 />
-                                                            </button>
-                                                            <button
-                                                                className="border-none bg-transparent"
-                                                                disabled={
-                                                                    retryingEvents
-                                                                }
-                                                                onClick={(
-                                                                    event
-                                                                ) =>
-                                                                    retryEvent({
-                                                                        event,
-                                                                        eventId:
-                                                                            item.uid,
-                                                                    })
-                                                                }
-                                                            >
                                                                 <img
                                                                     src="/refresh.svg"
                                                                     alt="refresh icon"
                                                                     className={
-                                                                        retryingEvents
-                                                                            ? "animate-spin-slow"
-                                                                            : ""
+                                                                        item
+                                                                            .metadata
+                                                                            ?.num_trials >
+                                                                        item
+                                                                            .metadata
+                                                                            ?.retry_limit
+                                                                            ? "visible"
+                                                                            : "invisible"
                                                                     }
                                                                 />
-                                                            </button>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
-                                    ))}
+                                                    )
+                                                )}
+                                            </div>
+                                        )
+                                    )}
                                 </div>
                             </div>
 
@@ -905,7 +1087,7 @@ export default function Home() {
                     )}
 
                     {/* details loader */}
-                    {fetchingEvents && (
+                    {(fetchingEvents || fetchingDeliveryAttempt) && (
                         <div className="max-w-[500px] w-full min-h-[70vh] rounded-8px bg-white-100 border border-primary-25">
                             <div className="flex items-center justify-between border-b border-gray-200">
                                 <ul className="flex flex-row m-auto w-full">
@@ -932,14 +1114,7 @@ export default function Home() {
                                     ))}
                                 </ul>
 
-                                <button className="flex items-center rounded-4px pl-10px pr-16px py-2px mr-16px bg-primary-25 text-12 text-primary-400">
-                                    <img
-                                        src="/refresh-primary.svg"
-                                        alt="refresh icon"
-                                        className="mr-4px"
-                                    />
-                                    Retry
-                                </button>
+                                <div className="rounded-24px bg-gray-100 animate-pulse h-24px w-100px mr-16px"></div>
                             </div>
                             <div className="p-16px">
                                 <h4 className="py-8px text-12 text-gray-400 mb-16px">
@@ -955,69 +1130,116 @@ export default function Home() {
                     )}
 
                     {/* event details  */}
-                    {!fetchingEvents && displayedEvents?.length > 0 && (
-                        <div className="max-w-[500px] w-full min-h-[70vh] rounded-8px bg-white-100 border border-primary-25">
-                            <div className="flex items-center justify-between border-b border-gray-200">
-                                <ul className="flex flex-row m-auto w-full">
-                                    {tabs.map((tab) => (
-                                        <li
-                                            key={tab}
-                                            className="mr-24px !list-none first-of-type:ml-16px last-of-type:mr-0"
-                                        >
-                                            <button
-                                                className={
-                                                    activeTab === tab
-                                                        ? "pb-12px pt-8px flex items-center active"
-                                                        : "pb-12px pt-8px flex items-center"
-                                                }
-                                                onClick={() =>
-                                                    setActiveTab(tab)
-                                                }
+                    {!fetchingEvents &&
+                        !fetchingDeliveryAttempt &&
+                        displayedEvents?.length > 0 && (
+                            <div className="max-w-[500px] w-full min-h-[70vh] rounded-8px bg-white-100 border border-primary-25">
+                                <div className="flex items-center justify-between border-b border-gray-200 pr-16px">
+                                    <ul className="flex flex-row m-auto w-full">
+                                        {tabs.map((tab) => (
+                                            <li
+                                                key={tab}
+                                                className="mr-24px !list-none first-of-type:ml-16px last-of-type:mr-0"
                                             >
-                                                <span className="text-12 text-left capitalize text-gray-500 tracking-[0.02em]">
-                                                    {tab}
-                                                </span>
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
+                                                <button
+                                                    className={
+                                                        activeTab === tab
+                                                            ? "pb-12px pt-8px flex items-center active"
+                                                            : "pb-12px pt-8px flex items-center"
+                                                    }
+                                                    onClick={() =>
+                                                        setActiveTab(tab)
+                                                    }
+                                                >
+                                                    <span className="text-12 text-left capitalize text-gray-500 tracking-[0.02em]">
+                                                        {tab}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
 
-                                <button
-                                    disabled={retryingEvents}
-                                    onClick={(event) =>
-                                        retryEvent({
-                                            event,
-                                            eventId: selectedEvent.uid,
-                                        })
-                                    }
-                                    className="flex items-center rounded-4px pl-10px pr-16px py-2px mr-16px bg-primary-25 text-12 text-primary-400 disabled:opacity-50"
-                                >
-                                    <img
-                                        src="/refresh-primary.svg"
-                                        alt="refresh icon"
-                                        className={`mr-4px ${
-                                            retryingEvents ??
-                                            "animate-spin-slow"
-                                        }`}
-                                    />
-                                    Retry
-                                </button>
-                            </div>
+                                    <button
+                                        disabled={
+                                            retryingEvents ||
+                                            !selectedEvent.delivery_uid
+                                        }
+                                        onClick={(event) =>
+                                            retryEvent({
+                                                event,
+                                                eventId:
+                                                    selectedEvent.delivery_uid,
+                                                eventStatus:
+                                                    selectedEvent.status,
+                                            })
+                                        }
+                                        className="flex items-center justify-center rounded-4px px-12px py-2px  bg-primary-25 text-12 text-primary-400 whitespace-nowrap disabled:opacity-50"
+                                    >
+                                        <img
+                                            src="/refresh-primary.svg"
+                                            alt="refresh icon"
+                                            className={`mr-4px ${
+                                                retryingEvents
+                                                    ? "animate-spin-slow"
+                                                    : ""
+                                            }`}
+                                        />
+                                        {selectedEvent.status &&
+                                        selectedEvent.status === "Success"
+                                            ? "Force "
+                                            : ""}
+                                        Retry
+                                    </button>
+                                </div>
 
-                            <div className="p-16px">
-                                <CodeRenderer
-                                    title="Header"
-                                    language="language-json"
-                                    code={selectedEvent.headers}
-                                />
-                                <CodeRenderer
-                                    title="Response"
-                                    language="language-json"
-                                    code={selectedEvent.data}
-                                />
+                                {activeTab === "request" && (
+                                    <div className="p-16px">
+                                        <CodeRenderer
+                                            title="Header"
+                                            language="language-json"
+                                            code={selectedEvent.headers}
+                                        />
+                                        <CodeRenderer
+                                            title="Body"
+                                            language="language-json"
+                                            code={selectedEvent.data}
+                                        />
+                                    </div>
+                                )}
+
+                                {activeTab === "response" && (
+                                    <div>
+                                        {!selectedEvent.status && (
+                                            <p className="p-16px italic text-gray-400 text-14">
+                                                No response header or body was
+                                                sent...
+                                            </p>
+                                        )}
+                                        {selectedEvent.status && (
+                                            <div className="p-16px">
+                                                <CodeRenderer
+                                                    title="Header"
+                                                    language="language-json"
+                                                    code={
+                                                        selectedDeliveryAttempt.response_http_header
+                                                    }
+                                                />
+
+                                                {selectedEvent.response_data && (
+                                                    <CodeRenderer
+                                                        title="Body"
+                                                        language="language-json"
+                                                        code={
+                                                            selectedEvent.response_data
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    )}
+                        )}
                 </div>
             </div>
 
