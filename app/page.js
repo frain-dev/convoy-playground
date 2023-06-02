@@ -260,6 +260,7 @@ export default function Home() {
     };
 
     const cleanQuery = (requestDetails) => {
+        let query;
         const cleanedQuery = Object.fromEntries(
             Object.entries(requestDetails).filter(
                 ([_, q]) =>
@@ -302,6 +303,7 @@ export default function Home() {
             });
         }
 
+        console.log(eventContent)
         // set events for display
         setEventsDisplayed(eventContent);
 
@@ -312,9 +314,6 @@ export default function Home() {
         // select first event amd set as active event
         const activeEvent = eventContent[0];
         getDeliveryAttempts(activeEvent);
-
-        console.log(eventDeliveryResponse);
-        console.log(eventResponse);
     };
 
     const getDeliveryAttempts = async (eventPayload) => {
@@ -518,21 +517,38 @@ export default function Home() {
         next_page_cursor,
         prev_page_cursor,
     }) => {
-        getEvents({
+        const eventsRequestDetails = {
             direction,
             next_page_cursor,
             prev_page_cursor,
-        });
+        };
+
+        const eventDelReqDets = {
+            direction,
+            next_page_cursor:
+                direction === "next" && eventDeliveryPagination.has_next_page
+                    ? eventDeliveryPagination.next_page_cursor
+                    : "",
+            prev_page_cursor:
+                direction === "prev" && eventDeliveryPagination.has_prev_page
+                    ? eventDeliveryPagination.prev_page_cursor
+                    : "",
+        };
+
+        getEventsAndEventDeliveries(eventsRequestDetails, eventDelReqDets);
     };
 
     const setUpUser = () => {
+        const presavedUserId = localStorage.getItem("USER_ID");
         if (firstTimeRender.current) {
-            const userId = (Math.random() + 1).toString(36).substring(2);
-            console.log(userId);
-            localStorage.setItem("USER_ID", userId);
+            if (!presavedUserId) {
+                const userId = (Math.random() + 1).toString(36).substring(2);
+                console.log(userId);
+                localStorage.setItem("USER_ID", userId);
+            }
+
             firstTimeRender.current = false;
         }
-        // getSubscriptionAndSources()
     };
 
     const getStatusObject = (status) => {
@@ -552,7 +568,7 @@ export default function Home() {
                 break;
             case "Pending":
                 statusObj = {
-                    status,
+                    status: status.toLowerCase(),
                     class: statusTypes.warning,
                 };
                 type = "warning";
@@ -560,13 +576,13 @@ export default function Home() {
             case "Failed":
             case "Failure":
                 statusObj = {
-                    status,
+                    status: status.toLowerCase(),
                     class: statusTypes.error,
                 };
                 break;
             default:
                 statusObj = {
-                    status,
+                    status: status ? status.toLowerCase() : "received",
                     class: statusTypes.default,
                 };
                 break;
@@ -926,7 +942,7 @@ export default function Home() {
                                                         <div
                                                             id={"event" + index}
                                                             key={index}
-                                                            className={`flex items-center p-14px hover:cursor-pointer ${
+                                                            className={`flex items-center p-12px transition-all duration-300 hover:cursor-pointer hover:bg-primary-25 ${
                                                                 selectedEvent.uid ===
                                                                 item.uid
                                                                     ? "bg-primary-25"
@@ -1035,7 +1051,7 @@ export default function Home() {
                                             }
                                             onClick={() =>
                                                 paginateEvents({
-                                                    direction: "next",
+                                                    direction: "prev",
                                                     next_page_cursor: "",
                                                     prev_page_cursor:
                                                         eventsPagination.prev_page_cursor,
@@ -1057,7 +1073,7 @@ export default function Home() {
                                             }
                                             onClick={() =>
                                                 paginateEvents({
-                                                    direction: "prev",
+                                                    direction: "next",
                                                     next_page_cursor:
                                                         eventsPagination.next_page_cursor,
                                                     prev_page_cursor: "",
