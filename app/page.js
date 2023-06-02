@@ -189,6 +189,12 @@ export default function Home() {
                 sourceResponse.value,
                 subscriptionResponse.value
             );
+
+        if (
+            sourceResponse.value?.length > 0 &&
+            subscriptionResponse.value?.length === 0
+        )
+            setSources(subscriptionResponse.value);
     }, []);
 
     const mapSourcesAndSubscriptions = (sourceContent, subscriptionContent) => {
@@ -294,7 +300,7 @@ export default function Home() {
             const eventContent = eventResponse.value?.content;
             const eventDeliveryContent = eventDeliveryResponse.value?.content;
 
-            if (eventContent.length > 0 && eventDeliveryContent.length > 0) {
+            if (eventContent?.length > 0 && eventDeliveryContent?.length > 0) {
                 eventContent.forEach((event) => {
                     eventDeliveryContent.forEach((eventDel) => {
                         if (event.event_type === eventDel.event_id) {
@@ -523,7 +529,6 @@ export default function Home() {
         next_page_cursor,
         prev_page_cursor,
     }) => {
-
         getEvents({
             direction,
             next_page_cursor,
@@ -750,7 +755,7 @@ export default function Home() {
                             </div>
                         </div>
 
-                        {showSourceDropdown && sources.length && (
+                        {showSourceDropdown && sources.length > 0 && (
                             <div className="transition-all ease-in-out duration-300 absolute top-[110%] max-w-[560px] w-full bg-white-100 border border-primary-25 rounded-4px shadow-default z-10 h-fit">
                                 {sources.map((item) => (
                                     <div
