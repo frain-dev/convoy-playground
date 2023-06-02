@@ -193,10 +193,10 @@ export default function Home() {
         if (
             sourceResponse.value?.length > 0 &&
             subscriptionResponse.value?.length === 0
-        )
-            setSources(subscriptionResponse.value);
-
-        getEventsAndEventDeliveries();
+        ) {
+            setSources(sourceResponse.value);
+            if (!activeSource) setActiveSources(sourceResponse.value[0]);
+        }
     }, []);
 
     const mapSourcesAndSubscriptions = (sourceContent, subscriptionContent) => {
@@ -576,6 +576,7 @@ export default function Home() {
     };
 
     useEffect(() => {
+        if (firstTimeRender.current) return;
         findActiveSubscription();
     }, [activeSource]);
 
@@ -593,7 +594,7 @@ export default function Home() {
 
     useEffect(() => {
         getSubscriptionAndSources();
-    }, []);
+    }, [getSubscriptionAndSources]);
 
     useEffect(() => {
         setUpUser();
@@ -925,7 +926,7 @@ export default function Home() {
                                                         <div
                                                             id={"event" + index}
                                                             key={index}
-                                                            className={`flex items-center p-16px hover:cursor-pointer ${
+                                                            className={`flex items-center p-14px hover:cursor-pointer ${
                                                                 selectedEvent.uid ===
                                                                 item.uid
                                                                     ? "bg-primary-25"
@@ -939,7 +940,7 @@ export default function Home() {
                                                         >
                                                             <div className="w-1/5">
                                                                 <div
-                                                                    className={`flex items-center justify-center px-12px py-2px text-14 w-fit rounded-24px ${
+                                                                    className={`flex items-center justify-center px-12px py-2px text-12 w-fit rounded-24px ${
                                                                         getStatusObject(
                                                                             item.status
                                                                         ).class
@@ -954,7 +955,7 @@ export default function Home() {
                                                             </div>
                                                             <div className="w-1/2">
                                                                 <div className="flex items-center justify-center px-12px py-2px w-fit text-gray-600">
-                                                                    <span className="text-14  max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">
+                                                                    <span className="text-12 max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis">
                                                                         {
                                                                             item?.event_type
                                                                         }
@@ -984,7 +985,7 @@ export default function Home() {
                                                                 </div>
                                                             </div>
                                                             <div className="w-1/5 ml-auto flex items-center justify-around">
-                                                                <div className="text-14 text-gray-500">
+                                                                <div className="text-12 text-gray-500">
                                                                     {formatTime(
                                                                         item?.created_at
                                                                     )}
@@ -1174,10 +1175,6 @@ export default function Home() {
                                                     : ""
                                             }`}
                                         />
-                                        {selectedEvent.status &&
-                                        selectedEvent.status === "Success"
-                                            ? "Force "
-                                            : ""}
                                         Retry
                                     </button>
                                 </div>
