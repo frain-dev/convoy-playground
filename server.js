@@ -11,7 +11,7 @@ app.use(
         target: "http://localhost:5005",
         changeOrigin: true,
         onProxyReq(proxyReq, req, res) {
-            if (req.method === "POST" && req.body) {
+            if ((req.method === "POST" || req.method === "PUT") && req.body) {
                 const bodyData = JSON.stringify(req.body);
                 proxyReq.setHeader("Content-Type", "application/json");
                 proxyReq.setHeader(

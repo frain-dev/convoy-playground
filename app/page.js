@@ -13,6 +13,7 @@ export default function Home() {
     const tableIndex = [0, 1, 2, 3, 4, 5];
     const [activeTab, setActiveTab] = useState("details");
     const [showUrlForm, setUrlFormState] = useState(false);
+    const [showEditUrlForm, setShowEditUrlForm] = useState(false);
     const [destinationUrl, setDestinationUrl] = useState("");
 
     const [sources, setSources] = useState([]);
@@ -110,62 +111,24 @@ export default function Home() {
         General.showNotification({ message: notificationText, style: "info" });
     };
 
-    const createSource = async () => {
-        setSourceErrorState(false);
-        const count = sources.length;
-        const sourcePayload = {
-            is_disabled: true,
-            name: `Source${count > 0 ? "-" + count : ""}`,
-            provider: null,
-            type: "http",
-            verifier: {
-                noop: {},
-                type: "noop",
-            },
-        };
-
-        setFetchingSources(true);
-
-        try {
-            await General.request({
-                url: "/sources",
-                body: sourcePayload,
-                method: "POST",
-            });
-
-            General.showNotification({
-                message: "New source created successfully",
-                style: "success",
-            });
-            getSources();
-        } catch (error) {
-            setFetchingSources(false);
-            if (sources.length === 0) setEventsErrorState(true);
-            return error;
-        }
-    };
-
-    const getSources = useCallback(async () => {
+    const getSources = async () => {
         setSourceErrorState(false);
         setFetchingSources(true);
         try {
             const sourcesResponse = await General.request({
                 url: `/sources?sort=AESC`,
             });
-
-            if (sourcesResponse.data.content.length === 0) createSource();
-            else mapSourcesAndSubscriptions(sourcesResponse.data.content);
+            const sourcePayload = sourcesResponse.data.content;
+            return sourcePayload;
         } catch (error) {
             setFetchingSources(false);
             setSourceErrorState(true);
             return error;
         }
-    }, []);
+    };
 
     // ftech subscriptions
-    const getSubscriptions = useCallback(async () => {
-        const userId = (Math.random() + 1).toString(36).substring(2);
-        console.log(userId)
+    const getSubscriptions = async () => {
         setEventsErrorState(false);
         setFetchingSources(true);
         try {
@@ -173,16 +136,61 @@ export default function Home() {
                 url: `/subscriptions`,
             });
 
-            setSubscriptions(subscriptionsResponse.data.content);
-            console.log(subscriptions);
-            firstTimeRender.current = false;
+            const subscriptionPayload = subscriptionsResponse.data.content;
+            return subscriptionPayload;
         } catch (error) {
             setFetchingSources(false);
-            setSourceErrorState(true)
+            setSourceErrorState(true);
             if (sources.length === 0) setEventsErrorState(true);
             return error;
         }
+    };
+
+    const getSubscriptionAndSources = useCallback(async () => {
+        const [subscriptionResponse, sourceResponse] = await Promise.allSettled(
+            [getSubscriptions(), getSources()]
+        );
+
+        if (
+            sourceResponse.status === "rejected" ||
+            subscriptionResponse.status === "rejected"
+        ) {
+            setSourceErrorState(true);
+            setEventsErrorState(true);
+        }
+
+        if (
+            sourceResponse.status === "fulfilled" &&
+            sourceResponse.value?.length === 0
+        )
+            createSource();
+
+        if (
+            sourceResponse.value?.length > 0 &&
+            subscriptionResponse.value?.length > 0
+        )
+            mapSourcesAndSubscriptions(
+                sourceResponse.value,
+                subscriptionResponse.value
+            );
+
+        console.log(subscriptionResponse, sourceResponse);
     }, []);
+
+    const mapSourcesAndSubscriptions = (sourceContent, subscriptionContent) => {
+        let sourcePayload = sourceContent;
+        sourcePayload.forEach((source) => {
+            const sourceDestinationUrl = subscriptionContent.find(
+                (sub) => sub.source_metadata.uid === source.uid
+            )?.endpoint_metadata.target_url;
+
+            source["destination_url"] = sourceDestinationUrl || null;
+        });
+        setSources(sourcePayload);
+        if (!activeSource) setActiveSources(sourceContent[0]);
+        setSubscriptions(subscriptionContent);
+        setFetchingSources(false);
+    };
 
     // fetch events
     const getEvents = useCallback(async (requestDetails) => {
@@ -254,6 +262,17 @@ export default function Home() {
         }
     };
 
+
+
+    const findActiveSubscription = () => {
+        const activeSourceSubscription =
+            subscriptions.find(
+                (item) => item.source_metadata.uid === activeSource.uid
+            ) || null;
+        setActiveSubscription(activeSourceSubscription);
+    };
+
+
     const createEndpoint = async () => {
         const endpointPayload = {
             advanced_signatures: false,
@@ -278,31 +297,6 @@ export default function Home() {
         }
     };
 
-    const findActiveSubscription = () => {
-        const activeSourceSubscription =
-            subscriptions.find(
-                (item) => item.source_metadata.uid === activeSource.uid
-            ) || null;
-        setActiveSubscription(activeSourceSubscription);
-    };
-
-    const mapSourcesAndSubscriptions = (sourceContent) => {
-        let sourcePayload = sourceContent;
-        if (subscriptions.length > 0) {
-            sourcePayload.forEach((source) => {
-                const sourceDestinationUrl = subscriptions.find(
-                    (sub) => sub.source_metadata.uid === source.uid
-                )?.endpoint_metadata.target_url;
-
-                source["destination_url"] = sourceDestinationUrl || null;
-            });
-        }
-        setSources(sourcePayload);
-        if (!activeSource) setActiveSources(sourceContent[0]);
-
-        setFetchingSources(false);
-    };
-
     const editEndpoint = async () => {
         const editEndpointPayload = {
             ...activeSubscription.endpoint_metadata,
@@ -313,10 +307,52 @@ export default function Home() {
         try {
             await General.request({
                 url: `/endpoints/${activeSubscription.endpoint_metadata.uid}`,
-                data: editEndpointPayload,
+                body: editEndpointPayload,
                 method: "PUT",
             });
+
+            General.showNotification({
+                message: "URL updated successfully",
+                style: "success",
+            });
+            setShowEditUrlForm(false);
+            getSubscriptionAndSources();
         } catch (error) {
+            return error;
+        }
+    };
+
+    const createSource = async () => {
+        setSourceErrorState(false);
+        const count = sources.length;
+        const sourcePayload = {
+            is_disabled: true,
+            name: `Source${count > 0 ? "-" + count : ""}`,
+            provider: null,
+            type: "http",
+            verifier: {
+                noop: {},
+                type: "noop",
+            },
+        };
+
+        setFetchingSources(true);
+
+        try {
+            await General.request({
+                url: "/sources",
+                body: sourcePayload,
+                method: "POST",
+            });
+
+            General.showNotification({
+                message: "New source created successfully",
+                style: "success",
+            });
+            getSubscriptionAndSources();
+        } catch (error) {
+            setFetchingSources(false);
+            if (sources.length === 0) setEventsErrorState(true);
             return error;
         }
     };
@@ -349,7 +385,7 @@ export default function Home() {
             });
             setAddingDestinationUrl(false);
             setUrlFormState(false);
-            getSubscriptions();
+            getSubscriptionAndSources();
         } catch (error) {
             setAddingDestinationUrl(false);
             return error;
@@ -368,6 +404,16 @@ export default function Home() {
         });
     };
 
+    const setUpUser = () => {
+        if (firstTimeRender.current) {
+            const userId = (Math.random() + 1).toString(36).substring(2);
+            console.log(userId);
+            localStorage.setItem("USER_ID", userId);
+            firstTimeRender.current = false;
+        }
+        // getSubscriptionAndSources()
+    };
+
     useEffect(() => {
         findActiveSubscription();
     }, [activeSource]);
@@ -382,17 +428,16 @@ export default function Home() {
     }, [selectedEndpoint]);
 
     useEffect(() => {
-        if (firstTimeRender.current) return;
-        getSources();
-    }, [subscriptions]);
-
-    useEffect(() => {
         getEvents();
     }, [getEvents]);
 
     useEffect(() => {
-        getSubscriptions();
-    }, [getSubscriptions]);
+        getSubscriptionAndSources();
+    }, [getSubscriptionAndSources]);
+
+    useEffect(() => {
+        setUpUser();
+    }, [setUpUser]);
 
     return (
         <React.Fragment>
@@ -432,7 +477,7 @@ export default function Home() {
                             <div>
                                 <button
                                     onClick={() => setSourceDropdownState(true)}
-                                    className="flex items-center py-14px px-16px min-w-[100px] text-gray-600 text-14 border-r border-primary-50"
+                                    className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50"
                                 >
                                     {activeSource?.name}
                                     <img
@@ -447,7 +492,7 @@ export default function Home() {
                                 </button>
                             </div>
                             <div className="flex items-center py-14px">
-                                <span className="text-gray-600 text-14 mr-10px min-w-[200px] max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
+                                <span className="text-gray-600 text-14 mr-10px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
                                     {activeSource?.url}
                                 </span>
                                 <button
@@ -484,32 +529,32 @@ export default function Home() {
                                             Add Destination
                                         </button>
                                     )}
-                                {showUrlForm &&
-                                    !activeSource?.destination_url && (
-                                        <div className="flex items-center">
-                                            <input
-                                                type="text"
-                                                className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-100 pr-10px"
-                                                placeholder={`${
-                                                    activeSource?.destination_url
-                                                        ? "Edit"
-                                                        : "Enter"
-                                                } Url`}
-                                                onKeyDown={handleKeyDown}
+                                {(showUrlForm || showEditUrlForm) && (
+                                    <div className="flex items-center">
+                                        <input
+                                            type="text"
+                                            className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-100 pr-10px"
+                                            placeholder={`${
+                                                activeSource?.destination_url
+                                                    ? "Edit"
+                                                    : "Enter"
+                                            } Url`}
+                                            onKeyDown={handleKeyDown}
+                                        />
+                                        <button
+                                            disabled={!destinationUrl}
+                                            onClick={() => createEndpoint()}
+                                            className="ml-auto"
+                                        >
+                                            <img
+                                                src="/check.svg"
+                                                alt="checkmark icon"
                                             />
-                                            <button
-                                                disabled={!destinationUrl}
-                                                onClick={() => createEndpoint()}
-                                                className="ml-auto"
-                                            >
-                                                <img
-                                                    src="/check.svg"
-                                                    alt="checkmark icon"
-                                                />
-                                            </button>
-                                        </div>
-                                    )}
+                                        </button>
+                                    </div>
+                                )}
                                 {!showUrlForm &&
+                                    !showEditUrlForm &&
                                     activeSource?.destination_url && (
                                         <div className="flex items-center w-full">
                                             <p className="text-gray-500 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
@@ -518,7 +563,7 @@ export default function Home() {
 
                                             <button
                                                 onClick={() => {
-                                                    setUrlFormState(true);
+                                                    setShowEditUrlForm(true);
                                                 }}
                                                 className="ml-auto"
                                             >
