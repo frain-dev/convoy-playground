@@ -164,6 +164,8 @@ export default function Home() {
 
     // ftech subscriptions
     const getSubscriptions = useCallback(async () => {
+        const userId = (Math.random() + 1).toString(36).substring(2);
+        console.log(userId)
         setEventsErrorState(false);
         setFetchingSources(true);
         try {
@@ -176,6 +178,7 @@ export default function Home() {
             firstTimeRender.current = false;
         } catch (error) {
             setFetchingSources(false);
+            setSourceErrorState(true)
             if (sources.length === 0) setEventsErrorState(true);
             return error;
         }
@@ -423,13 +426,13 @@ export default function Home() {
                 )}
 
                 {/* sources/endpoints filter/form */}
-                {!fetchingSources && (
+                {!fetchingSources && !sourceErrorState && (
                     <div className="relative mt-24px w-fit m-auto">
                         <div className="flex items-center gap-16px w-fit h-50px bg-white-100 rounded-8px border border-primary-50 pr-16px transition-[width] duration-500 ease-in-out">
                             <div>
                                 <button
                                     onClick={() => setSourceDropdownState(true)}
-                                    className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50"
+                                    className="flex items-center py-14px px-16px min-w-[100px] text-gray-600 text-14 border-r border-primary-50"
                                 >
                                     {activeSource?.name}
                                     <img
@@ -444,7 +447,7 @@ export default function Home() {
                                 </button>
                             </div>
                             <div className="flex items-center py-14px">
-                                <span className="text-gray-600 text-14 mr-10px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
+                                <span className="text-gray-600 text-14 mr-10px min-w-[200px] max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">
                                     {activeSource?.url}
                                 </span>
                                 <button
@@ -529,9 +532,7 @@ export default function Home() {
                                     )}
                             </div>
                         </div>
-                        {/* <div className="absolute flex backdrop-blur-sm rounded-4px w-full h-50px top-0 bg-primary-100 bg-opacity-50 items-center flex-col justify-center p-24px transition-all duration-300">
-                            <img src="/error-icon.svg" alt="danger icon" />
-                        </div> */}
+
                         {showSourceDropdown && sources.length && (
                             <div className="transition-all ease-in-out duration-300 absolute top-[110%] max-w-[560px] w-full bg-white-100 border border-primary-25 rounded-4px shadow-default z-10 h-fit">
                                 {sources.map((item) => (
@@ -625,16 +626,32 @@ export default function Home() {
 
                 {/* empty state  */}
                 {!fetchingEvents && displayedEvents?.length === 0 && (
-                    <div className="max-w-[564px] w-full m-auto rounded-12px bg-white-100 h-340px shadow-sm flex flex-col items-center justify-center mt-34px">
-                        <img
-                            src="/empty-state.svg"
-                            alt="empty state icon"
-                            className="mb-48px"
-                        />
+                    <div className="relative max-w-[564px] m-auto">
+                        <div className="w-full  rounded-12px bg-white-100 h-340px shadow-sm flex flex-col items-center justify-center mt-34px">
+                            <img
+                                src="/empty-state.svg"
+                                alt="empty state icon"
+                                className="mb-48px"
+                            />
 
-                        <p className="text-center text-14 text-gray-400 font-medium">
-                            Waiting for your first event...
-                        </p>
+                            <p className="text-center text-14 text-gray-400 font-medium">
+                                Waiting for your first event...
+                            </p>
+                        </div>
+
+                        {eventsErrorState && (
+                            <div className="absolute flex backdrop-blur-sm rounded-4px w-full h-340px top-0 bg-primary-100 bg-opacity-50 items-center flex-col justify-center p-24px transition-all duration-300">
+                                <img
+                                    src="/warning-icon-large.svg"
+                                    alt="warning icon"
+                                    className="mb-48px"
+                                />
+
+                                <p className="text-center text-18 font-medium">
+                                    An error occured, please refresh
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
 
