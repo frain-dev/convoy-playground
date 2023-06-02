@@ -195,6 +195,8 @@ export default function Home() {
             subscriptionResponse.value?.length === 0
         )
             setSources(subscriptionResponse.value);
+
+        getEventsAndEventDeliveries();
     }, []);
 
     const mapSourcesAndSubscriptions = (sourceContent, subscriptionContent) => {
@@ -219,7 +221,9 @@ export default function Home() {
         setFetchingEvents(true);
         try {
             const eventsResponse = await General.request({
-                url: `/events?sort=AESC&${eventQuery ?? eventQuery}`,
+                url: `/events?sort=AESC${
+                    activeSource ? "&sourceId=" + activeSource.uid : ""
+                }&${eventQuery ?? eventQuery}`,
                 method: "GET",
             });
 
@@ -239,9 +243,9 @@ export default function Home() {
 
         try {
             const eventsResponse = await General.request({
-                url: `/eventdeliveries?sort=AESC&${
-                    eventDeliveryQuery ?? eventDeliveryQuery
-                }`,
+                url: `/eventdeliveries?sort=AESC${
+                    activeSource ? "&sourceId=" + activeSource.uid : ""
+                }&${eventDeliveryQuery ?? eventDeliveryQuery}`,
                 method: "GET",
             });
 
@@ -269,62 +273,60 @@ export default function Home() {
         return query;
     };
 
-    const getEventsAndEventDeliveries = useCallback(
-        async (eventsRequest, eventDeliveryRequest) => {
-            // handle queries
-            const eventsQuery = eventsRequest ? cleanQuery(eventsRequest) : "";
-            const eventDeliveryQuery = eventDeliveryRequest
-                ? cleanQuery(eventDeliveryRequest)
-                : "";
+    const getEventsAndEventDeliveries = async (
+        eventsRequest,
+        eventDeliveryRequest
+    ) => {
+        // handle queries
+        const eventsQuery = eventsRequest ? cleanQuery(eventsRequest) : "";
+        const eventDeliveryQuery = eventDeliveryRequest
+            ? cleanQuery(eventDeliveryRequest)
+            : "";
 
-            const [eventDeliveryResponse, eventResponse] =
-                await Promise.allSettled([
-                    getEventDeliveries(eventDeliveryQuery),
-                    getEvents(eventsQuery),
-                ]);
+        const [eventDeliveryResponse, eventResponse] = await Promise.allSettled(
+            [getEventDeliveries(eventDeliveryQuery), getEvents(eventsQuery)]
+        );
 
-            const eventContent = eventResponse.value?.content;
-            const eventDeliveryContent = eventDeliveryResponse.value?.content;
+        const eventContent = eventResponse.value?.content;
+        const eventDeliveryContent = eventDeliveryResponse.value?.content;
 
-            if (eventContent?.length > 0 && eventDeliveryContent?.length > 0) {
-                eventContent.forEach((event) => {
-                    eventDeliveryContent.forEach((eventDel) => {
-                        if (event.event_type === eventDel.event_id) {
-                            event["status"] = eventDel.status || null;
-                            event["metadata"] = eventDel.metadata;
-                            event["delivery_uid"] = eventDel.uid;
-                        }
-                    });
+        if (eventContent?.length > 0 && eventDeliveryContent?.length > 0) {
+            eventContent.forEach((event) => {
+                eventDeliveryContent.forEach((eventDel) => {
+                    if (event.event_type === eventDel.event_id) {
+                        event["status"] = eventDel.status || null;
+                        event["metadata"] = eventDel.metadata;
+                        event["delivery_uid"] = eventDel.uid;
+                    }
                 });
-            }
+            });
+        }
 
-            // set events for display
-            setEventsDisplayed(eventContent);
+        // set events for display
+        setEventsDisplayed(eventContent);
 
-            // set events pagination
-            setEventsPagination(eventResponse.value?.pagination);
-            setEventDeliveryPagination(eventDeliveryResponse.value?.pagination);
+        // set events pagination
+        setEventsPagination(eventResponse.value?.pagination);
+        setEventDeliveryPagination(eventDeliveryResponse.value?.pagination);
 
-            // select first event amd set as active event
-            const activeEvent = eventContent[0];
-            getDeliveryAttempts(activeEvent);
+        // select first event amd set as active event
+        const activeEvent = eventContent[0];
+        getDeliveryAttempts(activeEvent);
 
-            console.log(eventDeliveryResponse);
-            console.log(eventResponse);
-        },
-        []
-    );
+        console.log(eventDeliveryResponse);
+        console.log(eventResponse);
+    };
 
     const getDeliveryAttempts = async (eventPayload) => {
         setSelectedEvent(eventPayload);
 
-        if (!eventPayload.delivery_uid) return;
+        if (!eventPayload?.delivery_uid) return;
 
         setFetchingDeliveryAttempt(true);
         try {
             const deliveryAttemptRes = await General.request({
                 method: "GET",
-                url: `/eventdeliveries/${eventPayload.delivery_uid}/deliveryattempts`,
+                url: `/eventdeliveries/${eventPayload?.delivery_uid}/deliveryattempts`,
             });
 
             const { request_http_header, response_http_header, response_data } =
@@ -388,6 +390,7 @@ export default function Home() {
                 (item) => item.source_metadata.uid === activeSource.uid
             ) || null;
         setActiveSubscription(activeSourceSubscription);
+        getEventsAndEventDeliveries();
     };
 
     const createEndpoint = async () => {
@@ -589,12 +592,8 @@ export default function Home() {
     }, [selectedEndpoint]);
 
     useEffect(() => {
-        getEventsAndEventDeliveries();
-    }, [getEventsAndEventDeliveries]);
-
-    useEffect(() => {
         getSubscriptionAndSources();
-    }, [getSubscriptionAndSources]);
+    }, []);
 
     useEffect(() => {
         setUpUser();
@@ -1153,13 +1152,13 @@ export default function Home() {
                                     <button
                                         disabled={
                                             retryingEvents ||
-                                            !selectedEvent.delivery_uid
+                                            !selectedEvent?.delivery_uid
                                         }
                                         onClick={(event) =>
                                             retryEvent({
                                                 event,
                                                 eventId:
-                                                    selectedEvent.delivery_uid,
+                                                    selectedEvent?.delivery_uid,
                                                 eventStatus:
                                                     selectedEvent.status,
                                             })
