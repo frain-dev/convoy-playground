@@ -233,28 +233,14 @@ export default function Home() {
         }
     };
 
-    const getEventDeliveries = async (requestDetails) => {
+    const getEventDeliveries = async (eventDeliveryQuery) => {
         setEventsErrorState(false);
-
-        let query = "";
-        if (requestDetails) {
-            const cleanedQuery = Object.fromEntries(
-                Object.entries(requestDetails).filter(
-                    ([_, q]) =>
-                        q !== "" &&
-                        q !== undefined &&
-                        q !== null &&
-                        typeof q !== "object"
-                )
-            );
-            query = new URLSearchParams(cleanedQuery).toString();
-        }
-
         setFetchingEvents(true);
+
         try {
             const eventsResponse = await General.request({
                 url: `/eventdeliveries?sort=AESC&${
-                    eventDeliveryQuery ?? query
+                    eventDeliveryQuery ?? eventDeliveryQuery
                 }`,
                 method: "GET",
             });
