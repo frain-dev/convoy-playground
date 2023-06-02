@@ -558,7 +558,7 @@ export default function Home() {
             case "Failure":
                 statusObj = {
                     status,
-                    class: statusTypes.danger,
+                    class: statusTypes.error,
                 };
                 break;
             default:
