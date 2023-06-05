@@ -514,6 +514,8 @@ export default function Home() {
                 style: "success",
             });
 
+            activeSource["destination_url"] = selectedEndpoint?.target_url;
+
             setAddingDestinationUrl(false);
             setUrlFormState(false);
             getSubscriptionAndSources();
@@ -540,6 +542,8 @@ export default function Home() {
                 message: "Destination Url updated successfully",
                 style: "success",
             });
+
+            activeSource["destination_url"] = selectedEndpoint?.target_url;
 
             setAddingDestinationUrl(false);
             setUrlFormState(false);
@@ -618,6 +622,21 @@ export default function Home() {
 
         return statusObj;
     };
+
+    const handleClickOutside = (e) => {
+        if (!inputRef.current?.contains(e.target)) {
+            const setUrl = inputRef.current?.value;
+            if (setUrl) setDestinationUrl(setUrl);
+            else {
+                setUrlFormState(false);
+                setShowEditUrlForm(false);
+            }
+        }
+    };
+
+    useEffect(() => {
+        document.addEventListener("click", handleClickOutside, true);
+    }, []);
 
     useEffect(() => {
         if (firstTimeRender.current && !activeSource) return;
