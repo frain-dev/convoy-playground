@@ -1257,6 +1257,7 @@ export default function Home() {
                                             title="Header"
                                             language="language-json"
                                             code={selectedEvent.headers}
+                                            type="headers"
                                         />
                                         <CodeRenderer
                                             title="Body"
@@ -1282,6 +1283,7 @@ export default function Home() {
                                                     code={
                                                         selectedDeliveryAttempt.response_http_header
                                                     }
+                                                    type="headers"
                                                 />
 
                                                 {selectedEvent.response_data && (
