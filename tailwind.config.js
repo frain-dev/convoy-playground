@@ -34,6 +34,7 @@ module.exports = {
                 "focus--success": "0px 0px 0px 4px #F6FEF9",
                 "focus--warning": "0px 0px 0px 4px #FFFCF5",
                 "focus--error": "0px 0px 0px 4px #FFFBFA",
+                "sm": "0px 3px 8px -1px rgba(50, 50, 71, 0.05)",
             },
             spacing: customSpacing(),
             borderRadius: {

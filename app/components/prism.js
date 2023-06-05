@@ -5,7 +5,7 @@ import "prismjs/components/prism-javascript";
 import "prismjs/components/prism-scss";
 import "prismjs/components/prism-json";
 import "prismjs/plugins/line-numbers/prism-line-numbers";
-import "../scss/prism.css";
+import "../scss/prism.scss";
 
 const CodeRenderer = ({ title, language, code }) => {
     const [showMorePayload, setMorePayloadState] = useState(false);
