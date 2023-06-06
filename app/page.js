@@ -515,13 +515,13 @@ export default function Home() {
                 method: "POST",
             });
 
+            activeSource["destination_url"] = selectedEndpoint?.target_url;
+            setActiveSources(activeSource);
+
             General.showNotification({
                 message: "Destination Url added successfully",
                 style: "success",
             });
-
-            activeSource["destination_url"] = selectedEndpoint?.target_url;
-            setActiveSources(activeSource);
 
             setAddingDestinationUrl(false);
             setUrlFormState(false);
@@ -545,13 +545,15 @@ export default function Home() {
                 method: "PUT",
             });
 
+            activeSource["destination_url"] = selectedEndpoint?.target_url;
+            setActiveSources(activeSource);
+
             General.showNotification({
                 message: "Destination Url updated successfully",
                 style: "success",
             });
 
-            activeSource["destination_url"] = selectedEndpoint?.target_url;
-            setActiveSources(activeSource);
+
 
             setAddingDestinationUrl(false);
             setUrlFormState(false);
@@ -1015,7 +1017,7 @@ export default function Home() {
                                                         <div
                                                             id={"event" + index}
                                                             key={index}
-                                                            className={`flex items-center p-12px transition-all duration-300 hover:cursor-pointer hover:bg-primary-25 rounded-8px mx-8px  ${
+                                                            className={`flex items-center p-12px transition-all duration-300 hover:cursor-pointer hover:bg-primary-25 rounded-20px my-4px mx-8px  ${
                                                                 selectedEvent.uid ===
                                                                 item.uid
                                                                     ? "bg-primary-25"
