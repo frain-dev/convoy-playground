@@ -57,6 +57,7 @@ export default function Home() {
     const firstTimeRender = useRef(true);
     const inputRef = useRef(null);
     const sourceFormRef = useRef(null);
+    const sourceDropdownRef = useRef(null);
 
     const months = [
         "Jan",
@@ -520,6 +521,7 @@ export default function Home() {
             });
 
             activeSource["destination_url"] = selectedEndpoint?.target_url;
+            setActiveSources(activeSource);
 
             setAddingDestinationUrl(false);
             setUrlFormState(false);
@@ -549,6 +551,7 @@ export default function Home() {
             });
 
             activeSource["destination_url"] = selectedEndpoint?.target_url;
+            setActiveSources(activeSource);
 
             setAddingDestinationUrl(false);
             setUrlFormState(false);
@@ -637,7 +640,10 @@ export default function Home() {
                 setShowEditUrlForm(false);
             }
         }
-        if (!sourceFormRef.current?.contains(e.target))
+        if (
+            !sourceFormRef.current?.contains(e.target) &&
+            !sourceDropdownRef.current?.contains(e.target)
+        )
             setSourceDropdownState(false);
     };
 
@@ -817,7 +823,10 @@ export default function Home() {
                             </div>
 
                             {showSourceDropdown && sources.length > 0 && (
-                                <div className="transition-all ease-in-out duration-300 absolute top-[110%] max-w-[560px] w-full bg-white-100 border border-primary-25 rounded-4px shadow-sm z-10 h-fit">
+                                <div
+                                    className="transition-all ease-in-out duration-300 absolute top-[110%] max-w-[560px] w-full bg-white-100 border border-primary-25 rounded-4px shadow-sm z-10 h-fit"
+                                    ref={sourceDropdownRef}
+                                >
                                     {sources.map((item) => (
                                         <div
                                             key={item.uid}
