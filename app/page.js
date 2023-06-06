@@ -56,6 +56,7 @@ export default function Home() {
 
     const firstTimeRender = useRef(true);
     const inputRef = useRef(null);
+    const sourceFormRef = useRef(null);
 
     const months = [
         "Jan",
@@ -112,6 +113,10 @@ export default function Home() {
         }
         const setUrl = inputRef.current.value;
         setDestinationUrl(setUrl);
+    };
+
+    const toggleSourceDropdown = () => {
+        setSourceDropdownState(!showSourceDropdown);
     };
 
     // copy item to clipboard
@@ -632,6 +637,8 @@ export default function Home() {
                 setShowEditUrlForm(false);
             }
         }
+        if (!sourceFormRef.current?.contains(e.target))
+            setSourceDropdownState(false);
     };
 
     useEffect(() => {
@@ -695,12 +702,13 @@ export default function Home() {
                 {!fetchingSources && !sourceErrorState && (
                     <div className="sticky top-100px bg-[#fafafe] pt-14px pb-40px z-50">
                         <div className="relative mt-24px w-fit m-auto">
-                            <div className="flex items-center gap-16px w-fit h-50px bg-white-100 rounded-8px border border-primary-50 pr-16px transition-[width] duration-500 ease-in-out shadow-sm">
+                            <div
+                                ref={sourceFormRef}
+                                className="flex items-center gap-16px w-fit h-50px bg-white-100 rounded-8px border border-primary-50 pr-16px transition-[width] duration-500 ease-in-out shadow-sm"
+                            >
                                 <div>
                                     <button
-                                        onClick={() =>
-                                            setSourceDropdownState(true)
-                                        }
+                                        onClick={() => toggleSourceDropdown()}
                                         className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50"
                                     >
                                         {activeSource?.name}
@@ -1303,13 +1311,6 @@ export default function Home() {
                         )}
                 </div>
             </div>
-
-            {showSourceDropdown && (
-                <div
-                    className="fixed h-screen w-screen top-0 right-0 bottom-0 z-[5]"
-                    onClick={() => setSourceDropdownState(false)}
-                ></div>
-            )}
 
             <Notification></Notification>
         </React.Fragment>
