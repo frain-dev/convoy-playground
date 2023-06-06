@@ -4,6 +4,7 @@
 /node_modules
 /.pnp
 .pnp.js
+/convoy-node-app/node_modules
 
 # testing
 /coverage
