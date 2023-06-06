@@ -45,7 +45,7 @@ export default function Home() {
 
     const [showSourceDropdown, setSourceDropdownState] = useState(false);
 
-    const [fetchingEvents, setFetchingEvents] = useState(true);
+    const [fetchingEvents, setFetchingEvents] = useState(false);
     const [fetchingSources, setFetchingSources] = useState(true);
     const [retryingEvents, setRetryingEvents] = useState(false);
     const [fetchingDeliveryAttempt, setFetchingDeliveryAttempt] =
@@ -53,6 +53,8 @@ export default function Home() {
     const [addingDestinationUrl, setAddingDestinationUrl] = useState(false);
     const [sourceErrorState, setSourceErrorState] = useState(false);
     const [eventsErrorState, setEventsErrorState] = useState(false);
+
+    const [getEventsInterval, setGetEventsInterval] = useState(null);
 
     const firstTimeRender = useRef(true);
     const inputRef = useRef(null);
@@ -211,6 +213,7 @@ export default function Home() {
     }, []);
 
     const checkIfActiveSourceExists = (sourcePayload) => {
+        if (activeSource !== null) return;
         const savedActiveSource = localStorage.getItem("ACTIVE_SOURCE");
         savedActiveSource
             ? setActiveSources(JSON.parse(savedActiveSource))
@@ -228,6 +231,7 @@ export default function Home() {
         else {
             setSources(userSources);
             checkIfActiveSourceExists(userSources);
+            getEventsAtInterval();
         }
     };
 
@@ -248,7 +252,6 @@ export default function Home() {
     const getEvents = async (eventQuery) => {
         setEventsErrorState(false);
 
-        setFetchingEvents(true);
         try {
             const eventsResponse = await General.request({
                 url: `/events?sort=AESC${
@@ -256,8 +259,6 @@ export default function Home() {
                 }&${eventQuery ?? eventQuery}`,
                 method: "GET",
             });
-
-            setFetchingEvents(false);
 
             return eventsResponse.data;
         } catch (error) {
@@ -269,7 +270,6 @@ export default function Home() {
 
     const getEventDeliveries = async (eventDeliveryQuery) => {
         setEventsErrorState(false);
-        setFetchingEvents(true);
 
         try {
             const eventsResponse = await General.request({
@@ -304,10 +304,13 @@ export default function Home() {
         return query;
     };
 
-    const getEventsAndEventDeliveries = async (
+    const getEventsAndEventDeliveries = async ({
+        showEventsLoader,
         eventsRequest,
-        eventDeliveryRequest
-    ) => {
+        eventDeliveryRequest,
+    }) => {
+        if (showEventsLoader) setFetchingEvents(true);
+
         // handle queries
         const eventsQuery = eventsRequest ? cleanQuery(eventsRequest) : "";
         const eventDeliveryQuery = eventDeliveryRequest
@@ -343,6 +346,16 @@ export default function Home() {
         // select first event amd set as active event
         const activeEvent = eventContent[0];
         getDeliveryAttempts(activeEvent);
+
+        setFetchingEvents(false);
+    };
+
+    const getEventsAtInterval = () => {
+        const eventsInterval = setInterval(() => {
+            getEventsAndEventDeliveries();
+        }, 10000);
+
+        setGetEventsInterval(eventsInterval);
     };
 
     const getDeliveryAttempts = async (eventPayload) => {
@@ -396,7 +409,7 @@ export default function Home() {
                 style: "success",
             });
 
-            getEventsAndEventDeliveries();
+            // getEventsAndEventDeliveries();
 
             setRetryingEvents(false);
         } catch (error) {
@@ -411,6 +424,9 @@ export default function Home() {
     };
 
     const findActiveSubscription = () => {
+        window.clearInterval(getEventsInterval);
+        setGetEventsInterval(null);
+
         setUrlFormState(false);
         setShowEditUrlForm(false);
 
@@ -420,9 +436,12 @@ export default function Home() {
             subscriptions.find(
                 (item) => item.source_metadata.uid === activeSource.uid
             ) || null;
+
         setActiveSubscription(activeSourceSubscription);
 
-        getEventsAndEventDeliveries();
+        getEventsAndEventDeliveries({ showEventsLoader: true }).then(() =>
+            getEventsAtInterval()
+        );
     };
 
     const createEndpoint = async () => {
@@ -553,8 +572,6 @@ export default function Home() {
                 style: "success",
             });
 
-
-
             setAddingDestinationUrl(false);
             setUrlFormState(false);
             setShowEditUrlForm(false);
@@ -570,13 +587,16 @@ export default function Home() {
         next_page_cursor,
         prev_page_cursor,
     }) => {
-        const eventsRequestDetails = {
+        window.clearInterval(getEventsInterval);
+        setGetEventsInterval(null);
+
+        const eventsRequest = {
             direction,
             next_page_cursor,
             prev_page_cursor,
         };
 
-        const eventDelReqDets = {
+        const eventDeliveryRequest = {
             direction,
             next_page_cursor:
                 direction === "next" && eventDeliveryPagination.has_next_page
@@ -588,7 +608,11 @@ export default function Home() {
                     : "",
         };
 
-        getEventsAndEventDeliveries(eventsRequestDetails, eventDelReqDets);
+        getEventsAndEventDeliveries({
+            showEventsLoader: true,
+            eventsRequest,
+            eventDeliveryRequest,
+        });
     };
 
     const getStatusObject = (status) => {
