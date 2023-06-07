@@ -185,6 +185,7 @@ export default function Home() {
             setSourceErrorState(true);
             setEventsErrorState(true);
             setFetchingEvents(false);
+            setFetchingSources(false);
         }
 
         if (
@@ -208,16 +209,14 @@ export default function Home() {
         ) {
             filterSavedSources(sourceResponse.value);
         }
-
-        setFetchingSources(false);
     }, []);
 
-    const checkIfActiveSourceExists = (sourcePayload) => {
-        if (activeSource !== null) return;
+    const checkIfActiveSourceExists = async (sourcePayload) => {
+        if(activeSource !== null) return;
         const savedActiveSource = localStorage.getItem("ACTIVE_SOURCE");
         savedActiveSource
-            ? setActiveSources(JSON.parse(savedActiveSource))
-            : setActiveSources(sourcePayload[0]);
+            ? await setActiveSources(JSON.parse(savedActiveSource))
+            : await setActiveSources(sourcePayload[0]);
     };
 
     const filterSavedSources = (sourcePayload) => {
@@ -229,6 +228,8 @@ export default function Home() {
         );
         if (userSources.length === 0) createSource();
         else {
+            setFetchingSources(false);
+
             setSources(userSources);
             checkIfActiveSourceExists(userSources);
             getEventsAtInterval();
@@ -353,7 +354,7 @@ export default function Home() {
     const getEventsAtInterval = () => {
         const eventsInterval = setInterval(() => {
             getEventsAndEventDeliveries();
-        }, 10000);
+        }, 7000);
 
         setGetEventsInterval(eventsInterval);
     };
@@ -389,6 +390,10 @@ export default function Home() {
     // retry events
     const retryEvent = async ({ event, eventId, eventStatus }) => {
         event.stopPropagation();
+
+        window.clearInterval(getEventsInterval);
+        setGetEventsInterval(null);
+
         setRetryingEvents(true);
 
         const payload = { ids: [eventId] };
@@ -409,7 +414,7 @@ export default function Home() {
                 style: "success",
             });
 
-            // getEventsAndEventDeliveries();
+            getEventsAndEventDeliveries(true).then(() => getEventsAtInterval());
 
             setRetryingEvents(false);
         } catch (error) {
@@ -535,6 +540,12 @@ export default function Home() {
             activeSource["destination_url"] = selectedEndpoint?.target_url;
             setActiveSources(activeSource);
 
+            sources.forEach((source) => {
+                if (source.uid === activeSource?.uid)
+                    source["destination_url"] === selectedEndpoint?.target_url;
+            });
+            setSources(sources);
+
             General.showNotification({
                 message: "Destination Url added successfully",
                 style: "success",
@@ -542,7 +553,7 @@ export default function Home() {
 
             setAddingDestinationUrl(false);
             setUrlFormState(false);
-            getSubscriptionAndSources();
+            // getSubscriptionAndSources();
         } catch (error) {
             setAddingDestinationUrl(false);
             return error;
@@ -555,6 +566,8 @@ export default function Home() {
             endpoint_id: selectedEndpoint?.uid,
         };
 
+        setAddingDestinationUrl(true);
+
         try {
             await General.request({
                 url: `/subscriptions${activeSubscription.uid}`,
@@ -565,6 +578,12 @@ export default function Home() {
             activeSource["destination_url"] = selectedEndpoint?.target_url;
             setActiveSources(activeSource);
 
+            sources.forEach((source) => {
+                if (source.uid === activeSource?.uid)
+                    source["destination_url"] === selectedEndpoint?.target_url;
+            });
+            setSources(sources);
+
             General.showNotification({
                 message: "Destination Url updated successfully",
                 style: "success",
@@ -573,7 +592,7 @@ export default function Home() {
             setAddingDestinationUrl(false);
             setUrlFormState(false);
             setShowEditUrlForm(false);
-            getSubscriptionAndSources();
+            // getSubscriptionAndSources();
         } catch (error) {
             setAddingDestinationUrl(false);
             return error;
@@ -804,7 +823,7 @@ export default function Home() {
                                             <button
                                                 disabled={addingDestinationUrl}
                                                 onClick={() => handleKeyDown()}
-                                                className="ml-auto"
+                                                className="border border-primary-50 rounded-4px ml-auto"
                                             >
                                                 <img
                                                     src="/check.svg"
