@@ -304,11 +304,11 @@ export default function Home() {
         return query;
     };
 
-    const getEventsAndEventDeliveries = async ({
+    const getEventsAndEventDeliveries = async (
         showEventsLoader,
         eventsRequest,
-        eventDeliveryRequest,
-    }) => {
+        eventDeliveryRequest
+    ) => {
         if (showEventsLoader) setFetchingEvents(true);
 
         // handle queries
@@ -345,7 +345,7 @@ export default function Home() {
 
         // select first event amd set as active event
         const activeEvent = eventContent[0];
-        getDeliveryAttempts(activeEvent);
+        getDeliveryAttempts(showEventsLoader, activeEvent);
 
         setFetchingEvents(false);
     };
@@ -358,12 +358,12 @@ export default function Home() {
         setGetEventsInterval(eventsInterval);
     };
 
-    const getDeliveryAttempts = async (eventPayload) => {
+    const getDeliveryAttempts = async (showLoader, eventPayload) => {
         setSelectedEvent(eventPayload);
 
         if (!eventPayload?.delivery_uid) return;
 
-        setFetchingDeliveryAttempt(true);
+        if (showLoader) setFetchingDeliveryAttempt(true);
         try {
             const deliveryAttemptRes = await General.request({
                 method: "GET",
@@ -439,9 +439,7 @@ export default function Home() {
 
         setActiveSubscription(activeSourceSubscription);
 
-        getEventsAndEventDeliveries({ showEventsLoader: true }).then(() =>
-            getEventsAtInterval()
-        );
+        getEventsAndEventDeliveries(true).then(() => getEventsAtInterval());
     };
 
     const createEndpoint = async () => {
@@ -608,11 +606,7 @@ export default function Home() {
                     : "",
         };
 
-        getEventsAndEventDeliveries({
-            showEventsLoader: true,
-            eventsRequest,
-            eventDeliveryRequest,
-        });
+        getEventsAndEventDeliveries(true, eventsRequest, eventDeliveryRequest);
     };
 
     const getStatusObject = (status) => {
@@ -1049,6 +1043,7 @@ export default function Home() {
                                                             }`}
                                                             onClick={() => {
                                                                 getDeliveryAttempts(
+                                                                    true,
                                                                     item
                                                                 );
                                                             }}
