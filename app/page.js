@@ -212,7 +212,7 @@ export default function Home() {
     }, []);
 
     const checkIfActiveSourceExists = async (sourcePayload) => {
-        if(activeSource !== null) return;
+        if (activeSource !== null) return;
         const savedActiveSource = localStorage.getItem("ACTIVE_SOURCE");
         savedActiveSource
             ? await setActiveSources(JSON.parse(savedActiveSource))
@@ -819,17 +819,25 @@ export default function Home() {
                                                         : "Enter"
                                                 } Url`}
                                                 onKeyDown={handleKeyDown}
+                                                readOnly={addingDestinationUrl}
                                             />
-                                            <button
-                                                disabled={addingDestinationUrl}
-                                                onClick={() => handleKeyDown()}
-                                                className="border border-primary-50 rounded-4px ml-auto"
-                                            >
-                                                <img
-                                                    src="/check.svg"
-                                                    alt="checkmark icon"
-                                                />
-                                            </button>
+
+                                            {addingDestinationUrl && (
+                                                <div className="mini-loader ml-auto"></div>
+                                            )}
+                                            {!addingDestinationUrl && (
+                                                <button
+                                                    onClick={() =>
+                                                        handleKeyDown()
+                                                    }
+                                                    className="border border-primary-50 rounded-4px ml-auto"
+                                                >
+                                                    <img
+                                                        src="/check.svg"
+                                                        alt="checkmark icon"
+                                                    />
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                     {!showUrlForm &&
