@@ -38,7 +38,7 @@ const CodeRenderer = ({ title, language, code, type }) => {
 
     useEffect(() => {
         Prism.highlightAll();
-    }, []);
+    }, [code]);
 
     return (
         <div>
