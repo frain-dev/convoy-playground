@@ -58,6 +58,7 @@ export default function Home() {
 
     const firstTimeRender = useRef(true);
     const inputRef = useRef(null);
+    const destinationInputRef = useRef(null);
     const sourceFormRef = useRef(null);
     const sourceDropdownRef = useRef(null);
 
@@ -114,7 +115,8 @@ export default function Home() {
             setDestinationUrl(event.target.value);
             return;
         }
-        const setUrl = inputRef.current.value;
+        const setUrl =
+            inputRef.current?.value || destinationInputRef.current?.value;
         setDestinationUrl(setUrl);
     };
 
@@ -360,7 +362,6 @@ export default function Home() {
     };
 
     const getDeliveryAttempts = async (showLoader, eventPayload) => {
-
         setSelectedEvent(eventPayload);
 
         if (!eventPayload?.delivery_uid) return;
@@ -1360,16 +1361,15 @@ export default function Home() {
                                                         Destination URL
                                                     </label>
                                                     <input
-                                                        ref={inputRef}
+                                                        ref={
+                                                            destinationInputRef
+                                                        }
                                                         id="destinationUrl"
                                                         type="text"
                                                         className="border border-primary-25 h-46px rounded-4px text-14 px-8px placeholder:text-gray-300 focus:border-primary-400 focus:outline-none transition-all duration-300"
                                                         placeholder="https://dashboard.getconvoy.io/webhook"
-                                                        value={
+                                                        defaultValue={
                                                             activeSource?.destination_url
-                                                        }
-                                                        onKeyDown={
-                                                            handleKeyDown
                                                         }
                                                         readOnly={
                                                             addingDestinationUrl
@@ -1382,6 +1382,7 @@ export default function Home() {
                                                         onClick={() => {
                                                             handleKeyDown();
                                                         }}
+                                                        type="button"
                                                         className="bg-primary-400 text-white-100 text-10 p-10px rounded-8px w-fit mt-24px disabled:pointer-events-none disabled:opacity-50"
                                                     >
                                                         {activeSource?.destination_url
