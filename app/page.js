@@ -189,7 +189,6 @@ export default function Home() {
 		if (userSources.length === 0) createSource();
 		else {
 			setFetchingSources(false);
-
 			setSources(userSources);
 			checkIfActiveSourceExists(userSources);
 			getEventsAtInterval();
@@ -199,9 +198,10 @@ export default function Home() {
 	const mapSourcesAndSubscriptions = (sourceContent, subscriptionContent) => {
 		let sourcePayload = sourceContent;
 		sourcePayload.forEach(source => {
-			const sourceDestinationUrl = subscriptionContent.find(sub => sub.source_metadata.uid === source.uid)?.endpoint_metadata.target_url;
+			const sourceWithSubscription = subscriptionContent.find(sub => sub.source_metadata.uid === source.uid);
 
-			source['destination_url'] = sourceDestinationUrl || null;
+			source['destination_url'] = sourceWithSubscription?.endpoint_metadata.target_url || null;
+			source['endpoint_metadata'] = sourceWithSubscription?.endpoint_metadata;
 		});
 		filterSavedSources(sourcePayload);
 		setSubscriptions(subscriptionContent);
@@ -410,6 +410,45 @@ export default function Home() {
 		}
 	};
 
+	const editEndpoint = async () => {
+		const editEndpointPayload = {
+			advanced_signatures: activeSource?.endpoint_metadata?.advanced_signatures,
+			name: activeSource?.endpoint_metadata?.title,
+			url: destinationUrl
+		};
+
+		setAddingDestinationUrl(true);
+
+		try {
+			await General.request({
+				url: `/endpoints/${activeSource?.endpoint_metadata?.uid}`,
+				body: editEndpointPayload,
+				method: 'PUT'
+			});
+
+			activeSource['destination_url'] = destinationUrl;
+			setActiveSources(activeSource);
+
+			sources.forEach(source => {
+				if (source.uid === activeSource?.uid) source['destination_url'] === destinationUrl;
+			});
+			setSources(sources);
+
+			General.showNotification({
+				message: 'Destination Url updated successfully',
+				style: 'success'
+			});
+
+			setAddingDestinationUrl(false);
+			setUrlFormState(false);
+			setShowEditUrlForm(false);
+			// getSubscriptionAndSources();
+		} catch (error) {
+			setAddingDestinationUrl(false);
+			return error;
+		}
+	};
+
 	const createSource = async () => {
 		setSourceErrorState(false);
 
@@ -491,44 +530,6 @@ export default function Home() {
 
 			setAddingDestinationUrl(false);
 			setUrlFormState(false);
-			// getSubscriptionAndSources();
-		} catch (error) {
-			setAddingDestinationUrl(false);
-			return error;
-		}
-	};
-
-	const editSubscription = async () => {
-		const editSubscriptionPayload = {
-			...activeSubscription,
-			endpoint_id: selectedEndpoint?.uid
-		};
-
-		setAddingDestinationUrl(true);
-
-		try {
-			await General.request({
-				url: `/subscriptions${activeSubscription.uid}`,
-				body: editSubscriptionPayload,
-				method: 'PUT'
-			});
-
-			activeSource['destination_url'] = selectedEndpoint?.target_url;
-			setActiveSources(activeSource);
-
-			sources.forEach(source => {
-				if (source.uid === activeSource?.uid) source['destination_url'] === selectedEndpoint?.target_url;
-			});
-			setSources(sources);
-
-			General.showNotification({
-				message: 'Destination Url updated successfully',
-				style: 'success'
-			});
-
-			setAddingDestinationUrl(false);
-			setUrlFormState(false);
-			setShowEditUrlForm(false);
 			// getSubscriptionAndSources();
 		} catch (error) {
 			setAddingDestinationUrl(false);
@@ -619,18 +620,25 @@ export default function Home() {
 	}, [activeSource]);
 
 	useEffect(() => {
-		if (destinationUrl) createEndpoint();
+		destinationUrl && activeSource?.destination_url ? editEndpoint() : createEndpoint();
 	}, [destinationUrl]);
 
 	useEffect(() => {
 		if (selectedEndpoint) {
-			activeSource?.destinationUrl ? editSubscription() : createSubscription();
+			activeSource?.destination_url ? editEndpoint() : createSubscription();
 		}
 	}, [selectedEndpoint]);
 
 	useEffect(() => {
 		getSubscriptionAndSources();
 	}, [getSubscriptionAndSources]);
+
+	// useEffect(() => {
+	// 	return () => {
+	// 		window.clearInterval(getEventsInterval);
+	// 		setGetEventsInterval(null);
+	// 	};
+	// }, []);
 
 	return (
 		<React.Fragment>
