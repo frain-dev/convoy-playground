@@ -360,6 +360,7 @@ export default function Home() {
     };
 
     const getDeliveryAttempts = async (showLoader, eventPayload) => {
+
         setSelectedEvent(eventPayload);
 
         if (!eventPayload?.delivery_uid) return;
@@ -1063,7 +1064,7 @@ export default function Home() {
                                                             id={"event" + index}
                                                             key={index}
                                                             className={`flex items-center p-12px transition-all duration-300 hover:cursor-pointer hover:bg-primary-25 rounded-20px my-4px mx-8px  ${
-                                                                selectedEvent.uid ===
+                                                                selectedEvent?.uid ===
                                                                 item.uid
                                                                     ? "bg-primary-25"
                                                                     : ""
@@ -1298,7 +1299,7 @@ export default function Home() {
                                                 eventId:
                                                     selectedEvent?.delivery_uid,
                                                 eventStatus:
-                                                    selectedEvent.status,
+                                                    selectedEvent?.status,
                                             })
                                         }
                                         className="flex items-center justify-center rounded-4px px-12px py-2px  bg-primary-25 text-12 text-primary-400 whitespace-nowrap disabled:opacity-50"
@@ -1321,26 +1322,77 @@ export default function Home() {
                                         <CodeRenderer
                                             title="Header"
                                             language="language-json"
-                                            code={selectedEvent.headers}
+                                            code={selectedEvent?.headers}
                                             type="headers"
                                         />
                                         <CodeRenderer
                                             title="Body"
                                             language="language-json"
-                                            code={selectedEvent.data}
+                                            code={selectedEvent?.data}
                                         />
                                     </div>
                                 )}
 
                                 {activeTab === "response" && (
                                     <div>
-                                        {!selectedEvent.status && (
-                                            <p className="p-16px italic text-gray-400 text-14">
-                                                No response header or body was
-                                                sent...
-                                            </p>
+                                        {!selectedEvent?.status && (
+                                            <div className="pt-34px px-16px">
+                                                <form className="flex flex-col">
+                                                    <p className="text-gray-800 text-14 font-semibold">
+                                                        {activeSource?.destination_url
+                                                            ? "Update "
+                                                            : "Add "}
+                                                        Destination
+                                                    </p>
+                                                    <p className="mt-12px text-gray-600 text-12">
+                                                        You can configure and
+                                                        endpoint to receive the
+                                                        webhook events injested
+                                                        with the provided source
+                                                        URL
+                                                    </p>
+
+                                                    <div className="border-t border-primary-25 my-24px"></div>
+                                                    <label
+                                                        htmlFor="destinationUrl"
+                                                        className="text-12 text-gray-400 mb-10px"
+                                                    >
+                                                        Destination URL
+                                                    </label>
+                                                    <input
+                                                        ref={inputRef}
+                                                        id="destinationUrl"
+                                                        type="text"
+                                                        className="border border-primary-25 h-46px rounded-4px text-14 px-8px placeholder:text-gray-300 focus:border-primary-400 focus:outline-none transition-all duration-300"
+                                                        placeholder="https://dashboard.getconvoy.io/webhook"
+                                                        value={
+                                                            activeSource?.destination_url
+                                                        }
+                                                        onKeyDown={
+                                                            handleKeyDown
+                                                        }
+                                                        readOnly={
+                                                            addingDestinationUrl
+                                                        }
+                                                    />
+                                                    <button
+                                                        disabled={
+                                                            addingDestinationUrl
+                                                        }
+                                                        onClick={() => {
+                                                            handleKeyDown();
+                                                        }}
+                                                        className="bg-primary-400 text-white-100 text-10 p-10px rounded-8px w-fit mt-24px disabled:pointer-events-none disabled:opacity-50"
+                                                    >
+                                                        {activeSource?.destination_url
+                                                            ? "Update "
+                                                            : "Add "}
+                                                        Destination
+                                                    </button>
+                                                </form>
+                                            </div>
                                         )}
-                                        {selectedEvent.status && (
+                                        {selectedEvent?.status && (
                                             <div className="p-16px">
                                                 <CodeRenderer
                                                     title="Header"
@@ -1351,12 +1403,12 @@ export default function Home() {
                                                     type="headers"
                                                 />
 
-                                                {selectedEvent.response_data && (
+                                                {selectedEvent?.response_data && (
                                                     <CodeRenderer
                                                         title="Body"
                                                         language="language-json"
                                                         code={
-                                                            selectedEvent.response_data
+                                                            selectedEvent?.response_data
                                                         }
                                                     />
                                                 )}
