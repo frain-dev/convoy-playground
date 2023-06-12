@@ -16,9 +16,6 @@ export default function Home() {
 	const [sources, setSources] = useState([]);
 	const [activeSource, setActiveSources] = useState(null);
 
-	const [subscriptions, setSubscriptions] = useState([]);
-	const [activeSubscription, setActiveSubscription] = useState(null);
-
 	const [displayedEvents, setDisplayedEvents] = useState([]);
 	const [eventsPagination, setEventsPagination] = useState({
 		has_next_page: false,
@@ -118,93 +115,48 @@ export default function Home() {
 		General.showNotification({ message: notificationText, style: 'info' });
 	};
 
-	const getSources = async () => {
-		setSourceErrorState(false);
-		try {
-			const sourcesResponse = await General.request({
-				url: `/sources?sort=AESC`
-			});
-			const sourcePayload = sourcesResponse.data.content;
-			return sourcePayload;
-		} catch (error) {
-			setFetchingSources(false);
-			setFetchingEvents(false);
-			setSourceErrorState(true);
-			setEventsErrorState(true);
-			return error;
-		}
-	};
-
-	// ftech subscriptions
-	const getSubscriptions = async () => {
-		setEventsErrorState(false);
-		try {
-			const subscriptionsResponse = await General.request({
-				url: `/subscriptions`
-			});
-
-			const subscriptionPayload = subscriptionsResponse.data.content;
-			return subscriptionPayload;
-		} catch (error) {
-			setFetchingSources(false);
-			setFetchingEvents(false);
-			setSourceErrorState(true);
-			setEventsErrorState(true);
-			return error;
-		}
-	};
-
 	const getSubscriptionAndSources = useCallback(async () => {
 		setFetchingSources(true);
 
-		const [subscriptionResponse, sourceResponse] = await Promise.allSettled([getSubscriptions(), getSources()]);
+		// const [subscriptionResponse, sourceResponse] = await Promise.allSettled([getSubscriptions(), getSources()]);
 
-		if (sourceResponse.status === 'rejected' || subscriptionResponse.status === 'rejected') {
-			setSourceErrorState(true);
-			setEventsErrorState(true);
-			setFetchingEvents(false);
-			setFetchingSources(false);
-		}
+		// if (sourceResponse.status === 'rejected' || subscriptionResponse.status === 'rejected') {
+		// 	setSourceErrorState(true);
+		// 	setEventsErrorState(true);
+		// 	setFetchingEvents(false);
+		// 	setFetchingSources(false);
+		// }
 
-		if (sourceResponse.status === 'fulfilled' && sourceResponse.value?.length === 0) createSource();
+		// if (sourceResponse.status === 'fulfilled' && sourceResponse.value?.length === 0) {
+		// 	console.log('creatSource');
+		// 	createSource();
+		// }
 
-		if (sourceResponse.value?.length > 0 && subscriptionResponse.value?.length > 0) mapSourcesAndSubscriptions(sourceResponse.value, subscriptionResponse.value);
+		// if (sourceResponse.value?.length > 0 && subscriptionResponse.value?.length > 0) mapSourcesAndSubscriptions(sourceResponse.value, subscriptionResponse.value);
 
-		if (sourceResponse.value?.length > 0 && subscriptionResponse.value?.length === 0) {
-			filterSavedSources(sourceResponse.value);
-		}
+		// if (sourceResponse.value?.length > 0 && subscriptionResponse.value?.length === 0) {
+		filterSavedSources();
+		// }
 	}, []);
 
 	const checkIfActiveSourceExists = async sourcePayload => {
 		if (activeSource !== null) return;
-		const savedActiveSource = localStorage.getItem('ACTIVE_SOURCE');
-		savedActiveSource ? await setActiveSources(JSON.parse(savedActiveSource)) : await setActiveSources(sourcePayload[0]);
+		const savedActiveSource = localStorage.getItem('PLAYGROUND_ACTIVE_SOURCE');
+		if (savedActiveSource) return setActiveSources(JSON.parse(savedActiveSource));
+
+		setActiveSources(sourcePayload[0]);
+		localStorage.setItem('PLAYGROUND_ACTIVE_SOURCE', JSON.stringify(sourcePayload[0]));
 	};
 
-	const filterSavedSources = sourcePayload => {
-		let source_ids = [];
-		const savedSourceIds = localStorage.getItem('SOURCE_IDS');
-		if (savedSourceIds) source_ids = JSON.parse(savedSourceIds);
-		const userSources = sourcePayload.filter(item => source_ids.includes(item.uid));
-		if (userSources.length === 0) createSource();
-		else {
-			setFetchingSources(false);
-			setSources(userSources);
-			checkIfActiveSourceExists(userSources);
-			getEventsAtInterval();
-		}
-	};
+	const filterSavedSources = () => {
+		let localSources = [];
+		const _sourcesString = localStorage.getItem('PLAYGROUND_SOURCES');
+		if (_sourcesString) localSources = JSON.parse(_sourcesString);
+		if (localSources.length === 0) return createSource();
 
-	const mapSourcesAndSubscriptions = (sourceContent, subscriptionContent) => {
-		let sourcePayload = sourceContent;
-		sourcePayload.forEach(source => {
-			const sourceWithSubscription = subscriptionContent.find(sub => sub.source_metadata.uid === source.uid);
-
-			source['destination_url'] = sourceWithSubscription?.endpoint_metadata.target_url || null;
-			source['endpoint_metadata'] = sourceWithSubscription?.endpoint_metadata;
-		});
-		filterSavedSources(sourcePayload);
-		setSubscriptions(subscriptionContent);
+		setSources(localSources);
+		setFetchingSources(false);
+		checkIfActiveSourceExists(localSources);
 	};
 
 	// fetch events
@@ -294,7 +246,7 @@ export default function Home() {
 	const getEventsAtInterval = () => {
 		const eventsInterval = setInterval(() => {
 			getEventsAndEventDeliveries();
-		}, 7000);
+		}, 5000);
 
 		setGetEventsInterval(eventsInterval);
 	};
@@ -370,19 +322,14 @@ export default function Home() {
 		}
 	};
 
-	const findActiveSubscription = () => {
+	const updateActiveSource = () => {
 		window.clearInterval(getEventsInterval);
 		setGetEventsInterval(null);
 
 		setUrlFormState(false);
 		setShowEditUrlForm(false);
 
-		localStorage.setItem('ACTIVE_SOURCE', JSON.stringify(activeSource));
-
-		const activeSourceSubscription = subscriptions.find(item => item.source_metadata.uid === activeSource.uid) || null;
-
-		setActiveSubscription(activeSourceSubscription);
-
+		localStorage.setItem('PLAYGROUND_ACTIVE_SOURCE', JSON.stringify(activeSource));
 		getEventsAndEventDeliveries(true).then(() => getEventsAtInterval());
 	};
 
@@ -452,14 +399,10 @@ export default function Home() {
 	const createSource = async () => {
 		setSourceErrorState(false);
 
-		let source_ids = [];
-		const savedSourceIds = localStorage.getItem('SOURCE_IDS');
-		if (savedSourceIds) source_ids = JSON.parse(savedSourceIds);
-
-		const count = source_ids.length;
+		const localSources = localStorage.getItem('PLAYGROUND_SOURCES');
+		const parsedLocalSources = localSources ? JSON.parse(localSources) : [];
 		const sourcePayload = {
-			is_disabled: true,
-			name: `Source${count > 0 ? '-' + count : ''}`,
+			name: `Source${parsedLocalSources.length > 0 ? '-' + parsedLocalSources.length : ''}`,
 			provider: null,
 			type: 'http',
 			verifier: {
@@ -468,8 +411,6 @@ export default function Home() {
 			}
 		};
 
-		setFetchingSources(true);
-
 		try {
 			const createSourceResponse = await General.request({
 				url: '/sources',
@@ -477,18 +418,19 @@ export default function Home() {
 				method: 'POST'
 			});
 
-			if (source_ids.length > 1)
+			setSources([...sources, createSourceResponse.data]);
+			checkIfActiveSourceExists([...sources, createSourceResponse.data]);
+			setFetchingSources(false);
+
+			if (parsedLocalSources.length > 0) {
 				General.showNotification({
 					message: 'New source created successfully',
 					style: 'success'
 				});
+			}
 
-			const newSourceId = createSourceResponse.data.uid;
-			source_ids = [...source_ids, newSourceId];
-
-			localStorage.setItem('SOURCE_IDS', JSON.stringify(source_ids));
-
-			getSubscriptionAndSources();
+			parsedLocalSources.push(createSourceResponse.data);
+			localStorage.setItem('PLAYGROUND_SOURCES', JSON.stringify(parsedLocalSources));
 		} catch (error) {
 			setFetchingSources(false);
 			if (sources.length === 0) setEventsErrorState(true);
@@ -504,10 +446,11 @@ export default function Home() {
 				event_types: ['*'],
 				filter: {}
 			},
-			name: 'Subscription',
+			name: 'Playground Subscription',
 			source_id: activeSource?.uid
 		};
 		setAddingDestinationUrl(true);
+
 		try {
 			await General.request({
 				url: '/subscriptions',
@@ -517,11 +460,13 @@ export default function Home() {
 
 			activeSource['destination_url'] = selectedEndpoint?.target_url;
 			setActiveSources(activeSource);
+			localStorage.setItem('PLAYGROUND_ACTIVE_SOURCE', JSON.stringify(activeSource));
 
 			sources.forEach(source => {
-				if (source.uid === activeSource?.uid) source['destination_url'] === selectedEndpoint?.target_url;
+				if (source.uid === activeSource?.uid) source['destination_url'] = selectedEndpoint?.target_url;
 			});
 			setSources(sources);
+			localStorage.setItem('PLAYGROUND_SOURCES', JSON.stringify(sources));
 
 			General.showNotification({
 				message: 'Destination Url added successfully',
@@ -530,7 +475,6 @@ export default function Home() {
 
 			setAddingDestinationUrl(false);
 			setUrlFormState(false);
-			// getSubscriptionAndSources();
 		} catch (error) {
 			setAddingDestinationUrl(false);
 			return error;
@@ -616,17 +560,17 @@ export default function Home() {
 
 	useEffect(() => {
 		if (firstTimeRender.current && !activeSource) return;
-		findActiveSubscription();
+		updateActiveSource();
+		// getEventsAtInterval();
 	}, [activeSource]);
 
 	useEffect(() => {
+		// if (firstTimeRender.current) return;
 		destinationUrl && activeSource?.destination_url ? editEndpoint() : createEndpoint();
 	}, [destinationUrl]);
 
 	useEffect(() => {
-		if (selectedEndpoint) {
-			activeSource?.destination_url ? editEndpoint() : createSubscription();
-		}
+		if (selectedEndpoint) createSubscription();
 	}, [selectedEndpoint]);
 
 	useEffect(() => {
@@ -697,10 +641,10 @@ export default function Home() {
 										<div className="flex items-center">
 											<input
 												type="text"
+												dafaultvalue={activeSource.destination_url}
 												ref={inputRef}
 												className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-300 pr-10px"
 												placeholder={`${activeSource?.destination_url ? 'Edit' : 'Enter'} Url`}
-												onKeyDown={handleKeyDown}
 												readOnly={addingDestinationUrl}
 											/>
 
@@ -967,14 +911,14 @@ export default function Home() {
 								</button>
 							</div>
 
-							{activeTab === 'request' && (
+							{activeTab === 'request' && selectedEvent && (
 								<div className="p-16px">
 									<CodeRenderer title="Header" language="language-json" code={selectedEvent?.headers} type="headers" />
 									<CodeRenderer title="Body" language="language-json" code={selectedEvent?.data} />
 								</div>
 							)}
 
-							{activeTab === 'response' && (
+							{activeTab === 'response' && selectedEvent && (
 								<div>
 									{!selectedEvent?.status && (
 										<div className="pt-34px px-16px">
@@ -1015,7 +959,7 @@ export default function Home() {
 										<div className="p-16px">
 											<CodeRenderer title="Header" language="language-json" code={selectedDeliveryAttempt.response_http_header} type="headers" />
 
-											{selectedEvent?.response_data && <CodeRenderer title="Body" language="language-json" code={selectedEvent?.response_data} />}
+											{selectedDeliveryAttempt?.response_data && <CodeRenderer title="Body" language="language-json" code={selectedDeliveryAttempt?.response_data} />}
 										</div>
 									)}
 								</div>
