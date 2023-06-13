@@ -89,17 +89,25 @@ export default function Home() {
 		setDisplayedEvents(displayedItems);
 	};
 
-	const handleKeyDown = event => {
-		if (event?.key === 'Enter') {
-			setDestinationUrl(event.target.value);
-			return;
-		}
+	const submitDestinationurl = e => {
+		e.preventDefault();
+		handleKeyDown();
+	};
+
+	const handleKeyDown = () => {
 		const setUrl = inputRef.current?.value || destinationInputRef.current?.value;
 		setDestinationUrl(setUrl);
 	};
 
 	const toggleSourceDropdown = () => {
 		setSourceDropdownState(!showSourceDropdown);
+	};
+
+	const openEditForm = () => {
+		setShowEditUrlForm(true);
+		if (inputRef.current?.value) {
+			inputRef.current.value = activeSource?.destination_url;
+		}
 	};
 
 	// copy item to clipboard
@@ -117,26 +125,7 @@ export default function Home() {
 
 	const getSubscriptionAndSources = useCallback(async () => {
 		setFetchingSources(true);
-
-		// const [subscriptionResponse, sourceResponse] = await Promise.allSettled([getSubscriptions(), getSources()]);
-
-		// if (sourceResponse.status === 'rejected' || subscriptionResponse.status === 'rejected') {
-		// 	setSourceErrorState(true);
-		// 	setEventsErrorState(true);
-		// 	setFetchingEvents(false);
-		// 	setFetchingSources(false);
-		// }
-
-		// if (sourceResponse.status === 'fulfilled' && sourceResponse.value?.length === 0) {
-		// 	console.log('creatSource');
-		// 	createSource();
-		// }
-
-		// if (sourceResponse.value?.length > 0 && subscriptionResponse.value?.length > 0) mapSourcesAndSubscriptions(sourceResponse.value, subscriptionResponse.value);
-
-		// if (sourceResponse.value?.length > 0 && subscriptionResponse.value?.length === 0) {
 		filterSavedSources();
-		// }
 	}, []);
 
 	const checkIfActiveSourceExists = async sourcePayload => {
@@ -235,10 +224,12 @@ export default function Home() {
 		setEventDeliveryPagination(eventDeliveryResponse.value?.pagination);
 
 		// select first event amd set as active event
-		const savedActiveEvent = localStorage.getItem('SELECTED_EVENT');
-		const activeEvent = savedActiveEvent ? JSON.parse(savedActiveEvent) : eventContent[0];
+		if (eventContent?.length > 0) {
+			const savedActiveEvent = localStorage.getItem('SELECTED_EVENT');
+			const activeEvent = savedActiveEvent ? JSON.parse(savedActiveEvent) : eventContent[0];
 
-		getDeliveryAttempts(showEventsLoader, activeEvent);
+			getDeliveryAttempts(showEventsLoader, activeEvent);
+		}
 
 		setFetchingEvents(false);
 	};
@@ -326,6 +317,7 @@ export default function Home() {
 		window.clearInterval(getEventsInterval);
 		setGetEventsInterval(null);
 
+		localStorage.removeItem('SELECTED_EVENT');
 		setUrlFormState(false);
 		setShowEditUrlForm(false);
 
@@ -334,6 +326,8 @@ export default function Home() {
 	};
 
 	const createEndpoint = async () => {
+		if (destinationUrl.length === 0) return;
+
 		const endpointPayload = {
 			advanced_signatures: false,
 			is_disabled: true,
@@ -350,7 +344,12 @@ export default function Home() {
 			});
 
 			setSelectedEndpoint(createEndpointResponse.data);
+			if (inputRef.current) inputRef.current.value = '';
 		} catch (error) {
+			General.showNotification({
+				message: error,
+				style: 'error'
+			});
 			setAddingDestinationUrl(false);
 
 			return error;
@@ -358,6 +357,7 @@ export default function Home() {
 	};
 
 	const editEndpoint = async () => {
+		if (destinationUrl.length === 0) return;
 		const editEndpointPayload = {
 			advanced_signatures: activeSource?.endpoint_metadata?.advanced_signatures,
 			name: activeSource?.endpoint_metadata?.title,
@@ -377,7 +377,7 @@ export default function Home() {
 			setActiveSources(activeSource);
 
 			sources.forEach(source => {
-				if (source.uid === activeSource?.uid) source['destination_url'] === destinationUrl;
+				if (source.uid === activeSource?.uid) source['destination_url'] = destinationUrl;
 			});
 			setSources(sources);
 
@@ -386,11 +386,15 @@ export default function Home() {
 				style: 'success'
 			});
 
+			if (inputRef.current) inputRef.current.value = '';
 			setAddingDestinationUrl(false);
 			setUrlFormState(false);
 			setShowEditUrlForm(false);
-			// getSubscriptionAndSources();
 		} catch (error) {
+			General.showNotification({
+				message: error,
+				style: 'error'
+			});
 			setAddingDestinationUrl(false);
 			return error;
 		}
@@ -459,11 +463,15 @@ export default function Home() {
 			});
 
 			activeSource['destination_url'] = selectedEndpoint?.target_url;
+			activeSource['endpoint_metadata'] = selectedEndpoint;
 			setActiveSources(activeSource);
 			localStorage.setItem('PLAYGROUND_ACTIVE_SOURCE', JSON.stringify(activeSource));
 
 			sources.forEach(source => {
-				if (source.uid === activeSource?.uid) source['destination_url'] = selectedEndpoint?.target_url;
+				if (source.uid === activeSource?.uid) {
+					source['destination_url'] = selectedEndpoint?.target_url;
+					source['endpoint_metadata'] = selectedEndpoint;
+				}
 			});
 			setSources(sources);
 			localStorage.setItem('PLAYGROUND_SOURCES', JSON.stringify(sources));
@@ -542,9 +550,11 @@ export default function Home() {
 		return statusObj;
 	};
 
+	// handle clicking outside destination url form
 	const handleClickOutside = e => {
 		if (!inputRef.current?.contains(e.target)) {
 			const setUrl = inputRef.current?.value;
+
 			if (setUrl) setDestinationUrl(setUrl);
 			else {
 				setUrlFormState(false);
@@ -561,11 +571,10 @@ export default function Home() {
 	useEffect(() => {
 		if (firstTimeRender.current && !activeSource) return;
 		updateActiveSource();
-		// getEventsAtInterval();
 	}, [activeSource]);
 
 	useEffect(() => {
-		// if (firstTimeRender.current) return;
+		if (firstTimeRender.current && !activeSource) return;
 		destinationUrl && activeSource?.destination_url ? editEndpoint() : createEndpoint();
 	}, [destinationUrl]);
 
@@ -577,12 +586,13 @@ export default function Home() {
 		getSubscriptionAndSources();
 	}, [getSubscriptionAndSources]);
 
-	// useEffect(() => {
-	// 	return () => {
-	// 		window.clearInterval(getEventsInterval);
-	// 		setGetEventsInterval(null);
-	// 	};
-	// }, []);
+	// end interval on destroy
+	useEffect(() => {
+		return () => {
+			window.clearInterval(getEventsInterval);
+			setGetEventsInterval(null);
+		};
+	}, []);
 
 	return (
 		<React.Fragment>
@@ -638,33 +648,29 @@ export default function Home() {
 										</button>
 									)}
 									{(showUrlForm || showEditUrlForm) && (
-										<div className="flex items-center">
+										<form onSubmit={submitDestinationurl} className="flex items-center">
 											<input
 												type="text"
-												dafaultvalue={activeSource.destination_url}
 												ref={inputRef}
 												className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-300 pr-10px"
 												placeholder={`${activeSource?.destination_url ? 'Edit' : 'Enter'} Url`}
 												readOnly={addingDestinationUrl}
+												autoFocus
 											/>
 
 											{addingDestinationUrl && <div className="mini-loader ml-auto"></div>}
 											{!addingDestinationUrl && (
-												<button onClick={() => handleKeyDown()} className="border border-primary-50 rounded-4px ml-auto">
+												<button type="submit" className="border border-primary-50 rounded-4px ml-auto">
 													<img src="/check.svg" alt="checkmark icon" />
 												</button>
 											)}
-										</div>
+										</form>
 									)}
 									{!showUrlForm && !showEditUrlForm && activeSource?.destination_url && (
 										<div className="flex items-center w-full">
 											<p className="text-gray-500 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.destination_url}</p>
 
-											<button
-												onClick={() => {
-													setShowEditUrlForm(true);
-												}}
-												className="ml-auto">
+											<button onClick={() => openEditForm()} className="ml-auto">
 												<img src="/edit.svg" alt="edit icon" className="w-18px h-18px" />
 											</button>
 										</div>
