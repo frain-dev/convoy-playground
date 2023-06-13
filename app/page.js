@@ -103,13 +103,6 @@ export default function Home() {
 		setSourceDropdownState(!showSourceDropdown);
 	};
 
-	const openEditForm = () => {
-		setShowEditUrlForm(true);
-		if (inputRef.current?.value) {
-			inputRef.current.value = activeSource?.destination_url;
-		}
-	};
-
 	// copy item to clipboard
 	const copyToClipboard = ({ event, textToCopy, notificationText }) => {
 		event.stopPropagation();
@@ -344,7 +337,7 @@ export default function Home() {
 			});
 
 			setSelectedEndpoint(createEndpointResponse.data);
-			if (inputRef.current) inputRef.current.value = '';
+			if (inputRef.current?.value) inputRef.current.value = '';
 		} catch (error) {
 			General.showNotification({
 				message: error,
@@ -386,7 +379,7 @@ export default function Home() {
 				style: 'success'
 			});
 
-			if (inputRef.current) inputRef.current.value = '';
+			if (inputRef.current?.value) inputRef.current.value = '';
 			setAddingDestinationUrl(false);
 			setUrlFormState(false);
 			setShowEditUrlForm(false);
@@ -670,7 +663,7 @@ export default function Home() {
 										<div className="flex items-center w-full">
 											<p className="text-gray-500 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.destination_url}</p>
 
-											<button onClick={() => openEditForm()} className="ml-auto">
+											<button onClick={() => setShowEditUrlForm(true)} className="ml-auto">
 												<img src="/edit.svg" alt="edit icon" className="w-18px h-18px" />
 											</button>
 										</div>
