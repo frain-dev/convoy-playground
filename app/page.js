@@ -313,6 +313,7 @@ export default function Home() {
 		localStorage.removeItem('SELECTED_EVENT');
 		setUrlFormState(false);
 		setShowEditUrlForm(false);
+		setDestinationUrl('');
 
 		localStorage.setItem('PLAYGROUND_ACTIVE_SOURCE', JSON.stringify(activeSource));
 		getEventsAndEventDeliveries(true).then(() => getEventsAtInterval());
@@ -337,7 +338,6 @@ export default function Home() {
 			});
 
 			setSelectedEndpoint(createEndpointResponse.data);
-			if (inputRef.current?.value) inputRef.current.value = '';
 		} catch (error) {
 			General.showNotification({
 				message: error,
@@ -476,6 +476,9 @@ export default function Home() {
 
 			setAddingDestinationUrl(false);
 			setUrlFormState(false);
+
+			// clear form
+			if (inputRef.current?.value) inputRef.current.value = '';
 		} catch (error) {
 			setAddingDestinationUrl(false);
 			return error;
