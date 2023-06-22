@@ -14,8 +14,7 @@ const nextConfig = {
 	env: {
 		PROJECT_TOKEN: process.env.PROJECT_TOKEN,
 		API_URL: process.env.API_URL
-	},
-	output: 'export'
+	}
 };
 
 module.exports = nextConfig;

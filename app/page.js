@@ -79,7 +79,7 @@ export default function Home() {
 	};
 
 	const setEventsDisplayed = events => {
-		const dateCreateds = events.map(item => getDate(item.created_at));
+		const dateCreateds = events?.map(item => getDate(item.created_at));
 		const uniqueDateCreateds = [...new Set(dateCreateds)];
 		let displayedItems = [];
 		uniqueDateCreateds.forEach(itemDate => {
@@ -717,7 +717,7 @@ export default function Home() {
 									showSourceDropdown && sources.length ? 'h-[293px] opacity-100 pointer-events-auto' : 'h-0 opacity-0 pointer-events-none'
 								}`}
 								ref={sourceDropdownRef}>
-								{sources.map((item, index) => (
+								{sources?.map((item, index) => (
 									<div key={item.uid} className="flex items-center justify-between px-12px py-12px mx-4px hover:bg-primary-25 transition-all duration-300 rounded-8px">
 										<div className="flex items-center">
 											<div className="relative group w-fit h-fit border-0">
@@ -801,13 +801,13 @@ export default function Home() {
 						<div className="max-w-[960px] mr-16px desktop:mr-0 w-full  overflow-hidden rounded-8px bg-white-100 border border-primary-25">
 							<div className="min-h-[70vh]">
 								<div className="w-full border-b border-gray-200">
-									{displayedEvents.map((event, eventIndex) => (
+									{displayedEvents?.map((event, eventIndex) => (
 										<div key={event.date}>
 											<div className={`flex items-center border-b border-gray-200 py-10px px-20px ${eventIndex > 0 ? 'border-t' : ''}`}>
 												<div className="w-2/5 text-12 text-gray-400">{formatDate(event?.date)}</div>
 												<div className="w-3/5"></div>
 											</div>
-											{event.content.map((item, index) => (
+											{event.content?.map((item, index) => (
 												<div
 													id={'event' + index}
 													key={index}
@@ -888,7 +888,7 @@ export default function Home() {
 						<div className="max-w-[500px] w-full min-h-[70vh] rounded-8px bg-white-100 border border-primary-25">
 							<div className="flex items-center justify-between border-b border-gray-200">
 								<ul className="flex flex-row m-auto w-full">
-									{tabs.map(tab => (
+									{tabs?.map(tab => (
 										<li key={tab} className="mr-24px !list-none first-of-type:ml-16px last-of-type:mr-0">
 											<button className={activeTab === tab ? 'pb-12px pt-8px flex items-center active' : 'pb-12px pt-8px flex items-center'} onClick={() => setActiveTab(tab)}>
 												<span className="text-12 text-left capitalize text-gray-500 tracking-[0.02em]">{tab}</span>
@@ -913,7 +913,7 @@ export default function Home() {
 						<div className="max-w-[500px] w-full min-h-[70vh] rounded-8px bg-white-100 border border-primary-25">
 							<div className="flex items-center justify-between border-b border-gray-200 pr-16px">
 								<ul className="flex flex-row m-auto w-full">
-									{tabs.map(tab => (
+									{tabs?.map(tab => (
 										<li key={tab} className="mr-24px !list-none first-of-type:ml-16px last-of-type:mr-0">
 											<button className={activeTab === tab ? 'pb-12px pt-8px flex items-center active' : 'pb-12px pt-8px flex items-center'} onClick={() => setActiveTab(tab)}>
 												<span className="text-12 text-left capitalize text-gray-500 tracking-[0.02em]">{tab}</span>
