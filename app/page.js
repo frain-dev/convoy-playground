@@ -4,6 +4,7 @@ import CodeRenderer from './components/prism';
 import Notification from './components/notification';
 import General from './services/general';
 import { format } from 'date-fns';
+import Loader from './components/loader';
 
 export default function Home() {
 	const tabs = ['request', 'response'];
@@ -44,6 +45,7 @@ export default function Home() {
 
 	const [fetchingEvents, setFetchingEvents] = useState(false);
 	const [fetchingSources, setFetchingSources] = useState(true);
+	const [addingSource, setAddingSource] = useState(false);
 	const [retryingEvents, setRetryingEvents] = useState(false);
 	const [fetchingDeliveryAttempt, setFetchingDeliveryAttempt] = useState(false);
 	const [addingDestinationUrl, setAddingDestinationUrl] = useState(false);
@@ -141,6 +143,34 @@ export default function Home() {
 		checkIfActiveSourceExists(localSources);
 	};
 
+	// delete source
+	const deleteSource = async sourceId => {
+		try {
+			let localSources = [];
+			let localActiveSource;
+			const _sourcesString = localStorage.getItem('PLAYGROUND_SOURCES');
+			const _activeSourcesString = localStorage.getItem('PLAYGROUND_ACTIVE_SOURCE');
+			if (_sourcesString) localSources = JSON.parse(_sourcesString);
+			if (_activeSourcesString) localActiveSource = JSON.parse(_activeSourcesString);
+
+			const sourceIndex = localSources.findIndex(source => source.uid === sourceId);
+			localSources.splice(sourceIndex, 1);
+			localStorage.setItem('PLAYGROUND_SOURCES', JSON.stringify(localSources));
+
+			if (localActiveSource.uid === sourceId) {
+				localStorage.setItem('PLAYGROUND_ACTIVE_SOURCE', JSON.stringify(localSources[0]));
+				setActiveSources(localSources[0]);
+			}
+
+			filterSavedSources();
+
+			General.request({
+				url: `/sources/${activeSource ? sourceId : ''}`,
+				method: 'DELETE'
+			});
+		} catch (error) {}
+	};
+
 	// fetch events
 	const getEvents = async eventQuery => {
 		setEventsErrorState(false);
@@ -224,26 +254,28 @@ export default function Home() {
 			getDeliveryAttempts(showEventsLoader, activeEvent);
 		}
 
-		setFetchingEvents(false);
+		setTimeout(() => {
+			setFetchingEvents(false);
+		}, 500);
 	};
 
 	const getEventsAtInterval = () => {
 		const eventsInterval = setInterval(() => {
 			getEventsAndEventDeliveries();
 		}, 5000);
-
 		setGetEventsInterval(eventsInterval);
 	};
 
 	const getDeliveryAttempts = async (showLoader, eventPayload) => {
 		// save selected event
+		setFetchingDeliveryAttempt(false);
 		localStorage.setItem('SELECTED_EVENT', JSON.stringify(eventPayload));
 
 		setSelectedEvent(eventPayload);
 
 		if (!eventPayload?.delivery_uid) return;
-
 		if (showLoader) setFetchingDeliveryAttempt(true);
+
 		try {
 			const deliveryAttemptRes = await General.request({
 				method: 'GET',
@@ -395,6 +427,7 @@ export default function Home() {
 
 	const createSource = async () => {
 		setSourceErrorState(false);
+		setAddingSource(true);
 
 		const localSources = localStorage.getItem('PLAYGROUND_SOURCES');
 		const parsedLocalSources = localSources ? JSON.parse(localSources) : [];
@@ -418,6 +451,7 @@ export default function Home() {
 			setSources([...sources, createSourceResponse.data]);
 			checkIfActiveSourceExists([...sources, createSourceResponse.data]);
 			setFetchingSources(false);
+			setAddingSource(false);
 
 			if (parsedLocalSources.length > 0) {
 				General.showNotification({
@@ -430,6 +464,7 @@ export default function Home() {
 			localStorage.setItem('PLAYGROUND_SOURCES', JSON.stringify(parsedLocalSources));
 		} catch (error) {
 			setFetchingSources(false);
+			setAddingSource(false);
 			if (sources.length === 0) setEventsErrorState(true);
 			return error;
 		}
@@ -592,9 +627,11 @@ export default function Home() {
 
 	return (
 		<React.Fragment>
-			<div className="pt-160px px-20px max-w-[1200px] m-auto">
-				<h2 className="text-24 text-gray-800 text-center font-semibold mb-16px">Convoy Playground</h2>
-				<p className="text-center text-14 text-gray-500 m-auto max-w-[502px]">A playground for you to receive and send out webhook events, test, debug and review webhook events; just like you will with Convoy.</p>
+			<div className="pt-160px px-20px max-w-[1500px] m-auto">
+				<div className={(displayedEvents?.length == 0 ? 'h-96px' : 'h-0') + ' overflow-hidden transition-all duration-300'}>
+					<h2 className="text-24 text-gray-800 text-center font-semibold mb-16px">Convoy Playground</h2>
+					<p className="text-center text-14 text-gray-500 m-auto max-w-[502px]">A playground for you to receive and send out webhook events, test, debug and review webhook events; just like you will with Convoy.</p>
+				</div>
 
 				{/* sources/endpoints loader  */}
 				{fetchingSources && (
@@ -615,72 +652,77 @@ export default function Home() {
 				{/* sources/endpoints filter/form */}
 				{!fetchingSources && !sourceErrorState && (
 					<div className="sticky top-100px bg-[#fafafe] pt-14px pb-40px z-50">
-						<div className="relative mt-24px w-fit m-auto">
-							<div ref={sourceFormRef} className="flex items-center gap-16px w-fit h-50px bg-white-100 rounded-8px border border-primary-50 pr-16px transition-[width] duration-500 ease-in-out shadow-sm">
-								<div>
-									<button onClick={() => toggleSourceDropdown()} className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50">
-										{activeSource?.name}
-										<img src="/angle-down.svg" alt="angle-down icon" className={`ml-28px transition-all duration-300 ease-in-out ${showSourceDropdown ? 'rotate-180' : ''}`} />
-									</button>
-								</div>
-								<div className="flex items-center py-14px">
-									<span className="text-gray-600 text-14 mr-10px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.url}</span>
-									<button
-										onClick={event =>
-											copyToClipboard({
-												event,
-												textToCopy: activeSource?.url,
-												notificationText: 'Source URL has been copied to clipboard.'
-											})
-										}>
-										<img src="/copy.svg" alt="copy icon" className="w-18px h-18px" />
-									</button>
-								</div>
-								<img src="/arrow-right.svg" alt="arrow-right icon" className="w-18px" />
-								<div className="flex items-center justify-end">
-									{!showUrlForm && !showEditUrlForm && !activeSource?.destination_url && (
-										<button onClick={() => setUrlFormState(true)} className="text-12 text-gray-600 rounded-8px py-6px px-12px border border-primary-50">
-											Add Destination
+						<div className="relative mt-24px max-w-[720px] w-fit mx-auto">
+							<div ref={sourceFormRef} className="flex items-center gap-16px bg-white-100 rounded-8px border border-primary-50 pr-16px shadow-sm transition-all duration-300 m-auto w-fit">
+								<button onClick={() => toggleSourceDropdown()} className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50">
+									{activeSource?.name}
+									<img src="/angle-down.svg" alt="angle-down icon" className={`ml-28px transition-all duration-300 ease-in-out ${showSourceDropdown ? 'rotate-180' : ''}`} />
+								</button>
+
+								<div className="flex gap-24px justify-between">
+									<div className="flex items-center py-14px">
+										<span className="text-gray-600 text-14 mr-10px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.url}</span>
+										<button
+											onClick={event =>
+												copyToClipboard({
+													event,
+													textToCopy: activeSource?.url,
+													notificationText: 'Source URL has been copied to clipboard.'
+												})
+											}>
+											<img src="/copy.svg" alt="copy icon" className="w-18px h-18px" />
 										</button>
-									)}
-									{(showUrlForm || showEditUrlForm) && (
-										<form onSubmit={submitDestinationurl} className="flex items-center">
-											<input
-												type="text"
-												ref={inputRef}
-												className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-300 pr-10px"
-												placeholder={`${activeSource?.destination_url ? 'Edit' : 'Enter'} Url`}
-												readOnly={addingDestinationUrl}
-												autoFocus
-											/>
-
-											{addingDestinationUrl && <div className="mini-loader ml-auto"></div>}
-											{!addingDestinationUrl && (
-												<button type="submit" className="border border-primary-50 rounded-4px ml-auto">
-													<img src="/check.svg" alt="checkmark icon" />
-												</button>
-											)}
-										</form>
-									)}
-									{!showUrlForm && !showEditUrlForm && activeSource?.destination_url && (
-										<div className="flex items-center w-full">
-											<p className="text-gray-500 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.destination_url}</p>
-
-											<button onClick={() => setShowEditUrlForm(true)} className="ml-auto">
-												<img src="/edit.svg" alt="edit icon" className="w-18px h-18px" />
+									</div>
+									<img src="/arrow-right.svg" alt="arrow-right icon" className="w-18px" />
+									<div className="flex items-center justify-end">
+										{!showUrlForm && !showEditUrlForm && !activeSource?.destination_url && (
+											<button onClick={() => setUrlFormState(true)} className="text-12 text-gray-600 rounded-8px py-6px px-12px border border-primary-50 w-full">
+												Add Destination
 											</button>
-										</div>
-									)}
+										)}
+										{(showUrlForm || showEditUrlForm) && (
+											<form onSubmit={submitDestinationurl} className="flex items-center">
+												<input
+													type="text"
+													ref={inputRef}
+													className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-300 pr-10px"
+													placeholder={`${activeSource?.destination_url ? 'Edit' : 'Enter'} Url`}
+													readOnly={addingDestinationUrl}
+													autoFocus
+												/>
+
+												{addingDestinationUrl && <div className="mini-loader ml-auto"></div>}
+												{!addingDestinationUrl && (
+													<button type="submit" className="border border-primary-50 rounded-4px ml-auto">
+														<img src="/check.svg" alt="checkmark icon" />
+													</button>
+												)}
+											</form>
+										)}
+										{!showUrlForm && !showEditUrlForm && activeSource?.destination_url && (
+											<div className="flex items-center w-full">
+												<p className="text-gray-500 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.destination_url}</p>
+
+												<button onClick={() => setShowEditUrlForm(true)} className="ml-auto">
+													<img src="/edit.svg" alt="edit icon" className="w-18px h-18px" />
+												</button>
+											</div>
+										)}
+									</div>
 								</div>
 							</div>
 
-							{showSourceDropdown && sources.length > 0 && (
-								<div className="transition-all ease-in-out duration-300 absolute top-[110%] max-w-[560px] w-full bg-white-100 border border-primary-25 rounded-4px shadow-sm z-10 h-fit" ref={sourceDropdownRef}>
-									{sources.map(item => (
-										<div key={item.uid} className="flex items-center px-14px py-10px">
+							<div
+								className={`pt-8px transition-all ease-in-out duration-300 absolute top-[110%] bg-white-100 border border-primary-50 rounded-8px shadow-sm z-10 h-fit min-w-fit w-full overflow-hidden ${
+									showSourceDropdown && sources.length ? 'h-[293px] opacity-100 pointer-events-auto' : 'h-0 opacity-0 pointer-events-none'
+								}`}
+								ref={sourceDropdownRef}>
+								{sources.map((item, index) => (
+									<div key={item.uid} className="flex items-center justify-between px-12px py-12px mx-4px hover:bg-primary-25 transition-all duration-300 rounded-8px">
+										<div className="flex items-center">
 											<div className="relative group w-fit h-fit border-0">
 												<input
-													id={item.uid}
+													id={item?.uid}
 													type="radio"
 													value={item.uid}
 													checked={activeSource?.uid === item.uid}
@@ -690,51 +732,57 @@ export default function Home() {
 													}}
 													className="opacity-0 absolute"
 												/>
-												<label htmlFor={item.uid} className="flex items-center ">
+												<label htmlFor={item.uid} className="flex items-center cursor-pointer">
 													<div className="rounded-4px group-focus:shadow-focus--primary group-hover:shadow-focus--primary">
 														<div className={`border border-primary-400 rounded-4px h-12px w-12px group-hover:bg-primary-25 transition-all duration-200 ${activeSource?.uid === item.uid ?? 'bg-primary-25'}`}>
 															{activeSource?.uid === item.uid && <img src="/checkmark-primary.svg" alt="checkmark icon" />}
 														</div>
 													</div>
-													<p className="text-14 text-gray-600 px-10px  border-r border-primary-25">{item.name}</p>
+													<p className="text-14 text-gray-600 px-10px w-94px border-r border-primary-25">{item.name}</p>
 												</label>
 											</div>
 
-											<p className="text-12 text-gray-600 pl-10px max-w-[181px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{item.url}</p>
+											<p className="text-14 text-gray-600 pl-10px max-w-[200px] w-full whitespace-nowrap  overflow-hidden text-ellipsis font-light">{item.url}</p>
 											<img src="/arrow-right.svg" alt="arrow-right icon" className="mx-10px" />
-											<p className={`text-12  max-w-[153px] w-full whitespace-nowrap  overflow-hidden text-ellipsis ${item?.destination_url ? 'text-gray-600' : 'italic text-gray-300'}`}>
+											<p className={`text-14  max-w-[200px] w-full whitespace-nowrap  overflow-hidden text-ellipsis font-light ${item?.destination_url ? 'text-gray-600' : 'italic text-gray-300'}`}>
 												{item?.destination_url ? item?.destination_url : `no destination set...`}
 											</p>
 										</div>
-									))}
 
-									<div className="flex px-14px py-10px mt-10px border-t border-primary-50">
-										<button className="flex items-center text-primary-400 text-14 px-0" onClick={() => createSource()}>
-											<img src="/plus.svg" alt="plus icon" className="mr-10px" />
-											New Source
-										</button>
+										{index !== 0 && (
+											<button onClick={() => deleteSource(item.uid)} className="w-14px ml-16px">
+												<img src="/trash.svg" />
+											</button>
+										)}
 									</div>
+								))}
+
+								<div className="flex px-14px py-10px mt-10px border-t border-primary-50">
+									<button className="flex items-center text-primary-400 text-14 px-0 disabled:opacity-50" disabled={addingSource || sources.length >= 5} onClick={() => createSource()}>
+										<img src="/plus.svg" alt="plus icon" className="mr-10px" />
+										{addingSource ? 'Creating New Source...' : 'New Source'}
+									</button>
 								</div>
-							)}
+							</div>
 						</div>
 					</div>
 				)}
 
-				{/* empty state  */}
+				{/* empty state */}
 				{!fetchingEvents && displayedEvents?.length === 0 && (
-					<div className={`relative max-w-[1200px] m-auto ${eventsErrorState ? 'mt-40px' : ''}`}>
-						<div className="w-full  rounded-12px bg-white-100 h-340px shadow-sm flex flex-col items-center justify-center">
-							<img src="/empty-state.svg" alt="empty state icon" className="mb-48px" />
-
-							<p className="text-center text-14 text-gray-400 font-medium">Waiting for your first event...</p>
-						</div>
+					<div className="relative max-w-[1200px] m-auto h-[44vh] flex flex-col items-center justify-center rounded-12px bg-white-100 shadow-sm border border-primary-25">
+						{!eventsErrorState && (
+							<>
+								<img src="/empty-state.svg" alt="empty state icon" className="mb-48px" />
+								<p className="text-center text-14 text-gray-400 font-medium">Waiting for your first event...</p>
+							</>
+						)}
 
 						{eventsErrorState && (
-							<div className="absolute flex backdrop-blur-sm rounded-4px w-full h-340px top-0 bg-primary-100 bg-opacity-50 items-center flex-col justify-center p-24px transition-all duration-300">
-								<img src="/warning-icon-large.svg" alt="warning icon" className="mb-48px" />
-
-								<p className="text-center text-18 font-medium">An error occured, please refresh</p>
-							</div>
+							<>
+								<img src="/warning-icon-large.svg" alt="warning icon" className="mb-24px" />
+								<p className="text-center text-14">An error occured, please refresh</p>
+							</>
 						)}
 					</div>
 				)}
@@ -743,38 +791,14 @@ export default function Home() {
 				<div className="flex mb-200px">
 					{/* table loader */}
 					{fetchingEvents && (
-						<div className="min-w-[660px] mr-16px desktop:mr-0 w-full  overflow-hidden rounded-8px bg-white-100 border border-primary-25">
-							<div className="min-h-[70vh] w-full">
-								<div className="w-full border-b border-gray-200">
-									<div className="flex items-center border-b border-t border-gray-200 py-10px px-16px">
-										<div className="w-2/5 text-12 text-gray-400">
-											<div className="rounded-24px bg-gray-100 animate-pulse h-24px"></div>
-										</div>
-										<div className="w-3/5"></div>
-									</div>
-									{tableIndex.map(item => (
-										<div className="flex items-center p-16px" key={item}>
-											<div className="w-1/5">
-												<div className="rounded-24px bg-gray-100 animate-pulse h-24px"></div>
-											</div>
-											<div className="w-1/2">
-												<div className="rounded-24px bg-gray-100 animate-pulse h-24px"></div>
-											</div>
-											<div className="w-1/5 ml-auto flex items-center justify-around">
-												<div className="rounded-24px bg-gray-100 animate-pulse h-24px w-150px"></div>
-												<div className="rounded-24px bg-gray-100 animate-pulse h-24px w-30px ml-16px"></div>
-												<div className="rounded-24px bg-gray-100 animate-pulse h-24px w-30px ml-16px"></div>
-											</div>
-										</div>
-									))}
-								</div>
-							</div>
+						<div className="min-h-[44vh] relative w-full">
+							<Loader className="absolute rounded-12px shadow-sm border border-primary-25"></Loader>
 						</div>
 					)}
 
 					{/* events list  */}
 					{!fetchingEvents && displayedEvents?.length > 0 && (
-						<div className="max-w-[660px] mr-16px desktop:mr-0 w-full  overflow-hidden rounded-8px bg-white-100 border border-primary-25">
+						<div className="max-w-[960px] mr-16px desktop:mr-0 w-full  overflow-hidden rounded-8px bg-white-100 border border-primary-25">
 							<div className="min-h-[70vh]">
 								<div className="w-full border-b border-gray-200">
 									{displayedEvents.map((event, eventIndex) => (
@@ -791,12 +815,12 @@ export default function Home() {
 													onClick={() => {
 														getDeliveryAttempts(true, item);
 													}}>
-													<div className="w-1/5">
+													<div className="w-1/6">
 														<div className={`flex items-center justify-center px-12px py-2px text-12 w-fit rounded-24px ${getStatusObject(item.status).class}`}>{getStatusObject(item.status).status}</div>
 													</div>
 													<div className="w-1/2">
 														<div className="flex items-center justify-center px-12px py-2px w-fit text-gray-600">
-															<span className="text-12 max-w-[200px] desktop:max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis">{item?.event_type}</span>
+															<span className="text-12 max-w-[300px] desktop:max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis">{item?.event_type}</span>
 															<button
 																className="border-none bg-transparent"
 																onClick={event =>
@@ -860,7 +884,7 @@ export default function Home() {
 					)}
 
 					{/* details loader */}
-					{(fetchingEvents || fetchingDeliveryAttempt) && (
+					{fetchingDeliveryAttempt && (
 						<div className="max-w-[500px] w-full min-h-[70vh] rounded-8px bg-white-100 border border-primary-25">
 							<div className="flex items-center justify-between border-b border-gray-200">
 								<ul className="flex flex-row m-auto w-full">
@@ -970,6 +994,8 @@ export default function Home() {
 					)}
 				</div>
 			</div>
+
+			{fetchingSources && <Loader className="z-[70]"></Loader>}
 
 			<Notification></Notification>
 		</React.Fragment>
