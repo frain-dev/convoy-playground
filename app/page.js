@@ -239,12 +239,22 @@ export default function Home() {
 			});
 		}
 
+		// check if update events is set to true
+		const updateEvents = localStorage.getItem('UPDATE_EVENTS');
+		const shouldUpdateEvents = updateEvents ? JSON.parse(updateEvents) : false;
+
+		if (!shouldUpdateEvents) {
+			setFetchingEvents(false);
+			return;
+		}
 		// set events for display
 		setEventsDisplayed(eventContent);
 
 		// set events pagination
 		setEventsPagination(eventResponse.value?.pagination);
 		setEventDeliveryPagination(eventDeliveryResponse.value?.pagination);
+
+		localStorage.setItem('UPDATE_EVENTS', 'false');
 
 		// select first event amd set as active event
 		if (eventContent?.length > 0) {
@@ -342,7 +352,10 @@ export default function Home() {
 		window.clearInterval(getEventsInterval);
 		setGetEventsInterval(null);
 
+		localStorage.setItem('UPDATE_EVENTS', 'true');
 		localStorage.removeItem('SELECTED_EVENT');
+
+		setDisplayedEvents([]);
 		setUrlFormState(false);
 		setShowEditUrlForm(false);
 		setDestinationUrl('');
