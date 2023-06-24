@@ -244,6 +244,7 @@ export default function Home() {
 		const shouldUpdateEvents = updateEvents ? JSON.parse(updateEvents) : false;
 
 		if (!shouldUpdateEvents) {
+			localStorage.setItem('UPDATE_EVENTS', 'true');
 			setFetchingEvents(false);
 			return;
 		}
@@ -254,7 +255,7 @@ export default function Home() {
 		setEventsPagination(eventResponse.value?.pagination);
 		setEventDeliveryPagination(eventDeliveryResponse.value?.pagination);
 
-		localStorage.setItem('UPDATE_EVENTS', 'false');
+		localStorage.setItem('UPDATE_EVENTS', 'true');
 
 		// select first event amd set as active event
 		if (eventContent?.length > 0) {
@@ -352,7 +353,7 @@ export default function Home() {
 		window.clearInterval(getEventsInterval);
 		setGetEventsInterval(null);
 
-		localStorage.setItem('UPDATE_EVENTS', 'true');
+		if (!firstTimeRender.current) localStorage.setItem('UPDATE_EVENTS', 'false');
 		localStorage.removeItem('SELECTED_EVENT');
 
 		setDisplayedEvents([]);
