@@ -887,19 +887,7 @@ export default function Home() {
 							<div className="flex items-center justify-between border-b border-gray-200 pr-16px">
 								<h4 className="pb-12px pt-8px px-16px text-12 text-left capitalize text-gray-500 tracking-[0.02em]">Request</h4>
 
-								<button
-									disabled={retryingEvents || !selectedEvent?.delivery_uid}
-									onClick={event =>
-										retryEvent({
-											event,
-											eventId: selectedEvent?.delivery_uid,
-											eventStatus: selectedEvent?.status
-										})
-									}
-									className="flex items-center justify-center rounded-4px px-12px py-2px  bg-primary-25 text-12 text-primary-400 whitespace-nowrap disabled:opacity-50">
-									<img src="/refresh-primary.svg" alt="refresh icon" className={`mr-4px ${retryingEvents ? 'animate-spin-slow' : ''}`} />
-									Retry
-								</button>
+
 							</div>
 
 							{selectedEvent && (
