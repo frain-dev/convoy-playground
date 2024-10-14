@@ -79,11 +79,11 @@ export default function Home() {
 	};
 
 	const setEventsDisplayed = events => {
-		const dateCreateds = events?.map(item => getDate(item.created_at));
+		const dateCreateds = events?.map(item => getDate(item?.created_at));
 		const uniqueDateCreateds = [...new Set(dateCreateds)];
 		let displayedItems = [];
 		uniqueDateCreateds.forEach(itemDate => {
-			const filteredItemDate = events.filter(item => getDate(item.created_at) === itemDate);
+			const filteredItemDate = events.filter(item => getDate(item?.created_at) === itemDate);
 			const contents = { date: itemDate, content: filteredItemDate };
 			displayedItems.push(contents);
 			displayedItems = displayedItems.sort((a, b) => Number(new Date(b.date)) - Number(new Date(a.date)));
@@ -467,6 +467,8 @@ export default function Home() {
 			setFetchingSources(false);
 			setAddingSource(false);
 
+			createSubscription();
+
 			if (parsedLocalSources.length > 0) {
 				General.showNotification({
 					message: 'New source created successfully',
@@ -487,7 +489,6 @@ export default function Home() {
 	const createSubscription = async () => {
 		const subscriptionPayload = {
 			disable_endpoint: true,
-			endpoint_id: selectedEndpoint?.uid,
 			filter_config: {
 				event_types: ['*'],
 				filter: {}
@@ -675,7 +676,7 @@ export default function Home() {
 
 								<div className="flex gap-24px justify-between">
 									<div className="flex items-center py-14px">
-										<span className="text-gray-600 text-14 mr-10px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.url}</span>
+										<span className="text-gray-600 text-14 mr-10px max-w-[260px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.url}</span>
 										<button
 											onClick={event =>
 												copyToClipboard({
@@ -687,42 +688,6 @@ export default function Home() {
 											<img src="/copy.svg" alt="copy icon" className="w-18px h-18px" />
 										</button>
 									</div>
-									<img src="/arrow-right.svg" alt="arrow-right icon" className="w-18px" />
-									<div className="flex items-center justify-end">
-										{!showUrlForm && !showEditUrlForm && !activeSource?.destination_url && (
-											<button onClick={() => setUrlFormState(true)} className="text-12 text-gray-600 rounded-8px py-6px px-12px border border-primary-50 w-full">
-												Add Destination
-											</button>
-										)}
-										{(showUrlForm || showEditUrlForm) && (
-											<form onSubmit={submitDestinationurl} className="flex items-center">
-												<input
-													type="text"
-													ref={inputRef}
-													className="border-none focus:outline-none focus:border-none text-14 text-black placeholder:text-gray-300 pr-10px"
-													placeholder={`${activeSource?.destination_url ? 'Edit' : 'Enter'} Url`}
-													readOnly={addingDestinationUrl}
-													autoFocus
-												/>
-
-												{addingDestinationUrl && <div className="mini-loader ml-auto"></div>}
-												{!addingDestinationUrl && (
-													<button type="submit" className="border border-primary-50 rounded-4px ml-auto">
-														<img src="/check.svg" alt="checkmark icon" />
-													</button>
-												)}
-											</form>
-										)}
-										{!showUrlForm && !showEditUrlForm && activeSource?.destination_url && (
-											<div className="flex items-center w-full">
-												<p className="text-gray-500 text-14 mr-16px max-w-[211px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.destination_url}</p>
-
-												<button onClick={() => setShowEditUrlForm(true)} className="ml-auto">
-													<img src="/edit.svg" alt="edit icon" className="w-18px h-18px" />
-												</button>
-											</div>
-										)}
-									</div>
 								</div>
 							</div>
 
@@ -732,39 +697,35 @@ export default function Home() {
 								}`}
 								ref={sourceDropdownRef}>
 								{sources?.map((item, index) => (
-									<div key={item.uid} className="flex items-center justify-between px-12px py-12px mx-4px hover:bg-primary-25 transition-all duration-300 rounded-8px">
+									<div key={index} className="flex items-center justify-between px-12px py-12px mx-4px hover:bg-primary-25 transition-all duration-300 rounded-8px">
 										<div className="flex items-center">
 											<div className="relative group w-fit h-fit border-0">
 												<input
 													id={item?.uid}
 													type="radio"
-													value={item.uid}
-													checked={activeSource?.uid === item.uid}
+													value={item?.uid}
+													checked={activeSource?.uid === item?.uid}
 													onChange={() => {
 														setActiveSources(item);
 														setSourceDropdownState(false);
 													}}
 													className="opacity-0 absolute"
 												/>
-												<label htmlFor={item.uid} className="flex items-center cursor-pointer">
+												<label htmlFor={item?.uid} className="flex items-center cursor-pointer">
 													<div className="rounded-4px group-focus:shadow-focus--primary group-hover:shadow-focus--primary">
-														<div className={`border border-primary-400 rounded-4px h-12px w-12px group-hover:bg-primary-25 transition-all duration-200 ${activeSource?.uid === item.uid ?? 'bg-primary-25'}`}>
-															{activeSource?.uid === item.uid && <img src="/checkmark-primary.svg" alt="checkmark icon" />}
+														<div className={`border border-primary-400 rounded-4px h-12px w-12px group-hover:bg-primary-25 transition-all duration-200 ${activeSource?.uid === item?.uid ?? 'bg-primary-25'}`}>
+															{activeSource?.uid === item?.uid && <img src="/checkmark-primary.svg" alt="checkmark icon" />}
 														</div>
 													</div>
-													<p className="text-14 text-gray-600 px-10px w-94px border-r border-primary-25">{item.name}</p>
+													<p className="text-14 text-gray-600 px-10px w-94px border-r border-primary-25">{item?.name}</p>
 												</label>
 											</div>
 
-											<p className="text-14 text-gray-600 pl-10px max-w-[200px] w-full whitespace-nowrap  overflow-hidden text-ellipsis font-light">{item.url}</p>
-											<img src="/arrow-right.svg" alt="arrow-right icon" className="mx-10px" />
-											<p className={`text-14  max-w-[200px] w-full whitespace-nowrap  overflow-hidden text-ellipsis font-light ${item?.destination_url ? 'text-gray-600' : 'italic text-gray-300'}`}>
-												{item?.destination_url ? item?.destination_url : `no destination set...`}
-											</p>
+											<p className="text-14 text-gray-600 pl-10px max-w-[260px] w-full whitespace-nowrap  overflow-hidden text-ellipsis font-light">{item?.url}</p>
 										</div>
 
 										{index !== 0 && (
-											<button onClick={() => deleteSource(item.uid)} className="w-14px ml-16px">
+											<button onClick={() => deleteSource(item?.uid)} className="w-14px ml-16px">
 												<img src="/trash.svg" />
 											</button>
 										)}
@@ -825,12 +786,12 @@ export default function Home() {
 												<div
 													id={'event' + index}
 													key={index}
-													className={`flex items-center p-12px transition-all duration-300 hover:cursor-pointer hover:bg-primary-25 rounded-20px my-4px mx-8px  ${selectedEvent?.uid === item.uid ? 'bg-primary-25' : ''}`}
+													className={`flex items-center p-12px transition-all duration-300 hover:cursor-pointer hover:bg-primary-25 rounded-20px my-4px mx-8px  ${selectedEvent?.uid === item?.uid ? 'bg-primary-25' : ''}`}
 													onClick={() => {
 														getDeliveryAttempts(true, item);
 													}}>
 													<div className="w-1/6">
-														<div className={`flex items-center justify-center px-12px py-2px text-12 w-fit rounded-24px ${getStatusObject(item.status).class}`}>{getStatusObject(item.status).status}</div>
+														<div className={`flex items-center justify-center px-12px py-2px text-12 w-fit rounded-24px ${getStatusObject(item?.status).class}`}>{getStatusObject(item?.status).status}</div>
 													</div>
 													<div className="w-1/2">
 														<div className="flex items-center justify-center px-12px py-2px w-fit text-gray-600">
@@ -850,8 +811,8 @@ export default function Home() {
 													</div>
 													<div className="w-1/5 ml-auto flex items-center justify-around">
 														<div className="text-12 text-gray-500">{formatTime(item?.created_at)}</div>
-														<img src="/arrow-up-right.svg" alt="arrow right up icon" className={`block desktop:hidden ${item.status ? 'visible' : 'invisible'}`} />
-														<img src="/refresh.svg" alt="refresh icon" className={`block desktop:hidden ${item.metadata?.num_trials > item.metadata?.retry_limit ? 'visible' : 'invisible'}`} />
+														<img src="/arrow-up-right.svg" alt="arrow right up icon" className={`block desktop:hidden ${item?.status ? 'visible' : 'invisible'}`} />
+														<img src="/refresh.svg" alt="refresh icon" className={`block desktop:hidden ${item?.metadata?.num_trials > item?.metadata?.retry_limit ? 'visible' : 'invisible'}`} />
 													</div>
 												</div>
 											))}
@@ -926,15 +887,7 @@ export default function Home() {
 					{!fetchingEvents && !fetchingDeliveryAttempt && displayedEvents?.length > 0 && (
 						<div className="max-w-[500px] w-full min-h-[70vh] rounded-8px bg-white-100 border border-primary-25">
 							<div className="flex items-center justify-between border-b border-gray-200 pr-16px">
-								<ul className="flex flex-row m-auto w-full">
-									{tabs?.map(tab => (
-										<li key={tab} className="mr-24px !list-none first-of-type:ml-16px last-of-type:mr-0">
-											<button className={activeTab === tab ? 'pb-12px pt-8px flex items-center active' : 'pb-12px pt-8px flex items-center'} onClick={() => setActiveTab(tab)}>
-												<span className="text-12 text-left capitalize text-gray-500 tracking-[0.02em]">{tab}</span>
-											</button>
-										</li>
-									))}
-								</ul>
+								<h4 className="pb-12px pt-8px px-16px text-12 text-left capitalize text-gray-500 tracking-[0.02em]">Request</h4>
 
 								<button
 									disabled={retryingEvents || !selectedEvent?.delivery_uid}
@@ -951,57 +904,10 @@ export default function Home() {
 								</button>
 							</div>
 
-							{activeTab === 'request' && selectedEvent && (
+							{selectedEvent && (
 								<div className="p-16px">
 									<CodeRenderer title="Header" language="language-json" code={selectedEvent?.headers} type="headers" />
 									<CodeRenderer title="Body" language="language-json" code={selectedEvent?.data} />
-								</div>
-							)}
-
-							{activeTab === 'response' && selectedEvent && (
-								<div>
-									{!selectedEvent?.status && (
-										<div className="pt-34px px-16px">
-											<form className="flex flex-col">
-												<p className="text-gray-800 text-14 font-semibold">
-													{activeSource?.destination_url ? 'Update ' : 'Add '}
-													Destination
-												</p>
-												<p className="mt-12px text-gray-600 text-12">You can configure and endpoint to receive the webhook events injested with the provided source URL</p>
-
-												<div className="border-t border-primary-25 my-24px"></div>
-												<label htmlFor="destinationUrl" className="text-12 text-gray-400 mb-10px">
-													Destination URL
-												</label>
-												<input
-													ref={destinationInputRef}
-													id="destinationUrl"
-													type="text"
-													className="border border-primary-25 h-46px rounded-4px text-14 px-8px placeholder:text-gray-300 focus:border-primary-400 focus:outline-none transition-all duration-300"
-													placeholder="https://dashboard.getconvoy.io/webhook"
-													defaultValue={activeSource?.destination_url}
-													readOnly={addingDestinationUrl}
-												/>
-												<button
-													disabled={addingDestinationUrl}
-													onClick={() => {
-														handleKeyDown();
-													}}
-													type="button"
-													className="bg-primary-400 text-white-100 text-10 p-10px rounded-8px w-fit mt-24px disabled:pointer-events-none disabled:opacity-50">
-													{activeSource?.destination_url ? 'Update ' : 'Add '}
-													Destination
-												</button>
-											</form>
-										</div>
-									)}
-									{selectedEvent?.status && (
-										<div className="p-16px">
-											<CodeRenderer title="Header" language="language-json" code={selectedDeliveryAttempt.response_http_header} type="headers" />
-
-											{selectedDeliveryAttempt?.response_data && <CodeRenderer title="Body" language="language-json" code={selectedDeliveryAttempt?.response_data} />}
-										</div>
-									)}
 								</div>
 							)}
 						</div>
