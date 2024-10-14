@@ -3,7 +3,6 @@ import * as axios from "axios";
 
 const _axios = axios.default;
 const apiURL = process.env.API_URL;
-const token = process.env.PROJECT_TOKEN;
 const notification = new BehaviorSubject({
     message: "",
     style: "",
@@ -26,7 +25,7 @@ class GeneralService {
 
     request = ({ url, body, method }) => {
         const headers = {
-            Authorization: `Bearer ${token}`,
+            Authorization: '',
         };
 
         const http = _axios.create({
