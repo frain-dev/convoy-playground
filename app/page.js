@@ -467,8 +467,6 @@ export default function Home() {
 			setFetchingSources(false);
 			setAddingSource(false);
 
-			createSubscription();
-
 			if (parsedLocalSources.length > 0) {
 				General.showNotification({
 					message: 'New source created successfully',
@@ -676,12 +674,12 @@ export default function Home() {
 
 								<div className="flex gap-24px justify-between">
 									<div className="flex items-center py-14px">
-										<span className="text-gray-600 text-14 mr-10px max-w-[260px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.url}</span>
+										<span className="text-gray-600 text-14 mr-10px max-w-[440px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">https://{activeSource?.url}</span>
 										<button
 											onClick={event =>
 												copyToClipboard({
 													event,
-													textToCopy: activeSource?.url,
+													textToCopy: `https://${activeSource?.url}`,
 													notificationText: 'Source URL has been copied to clipboard.'
 												})
 											}>
@@ -721,7 +719,7 @@ export default function Home() {
 												</label>
 											</div>
 
-											<p className="text-14 text-gray-600 pl-10px max-w-[260px] w-full whitespace-nowrap  overflow-hidden text-ellipsis font-light">{item?.url}</p>
+											<p className="text-14 text-gray-600 pl-10px max-w-[440px] w-full whitespace-nowrap  overflow-hidden text-ellipsis font-light">https://{item?.url}</p>
 										</div>
 
 										{index !== 0 && (
