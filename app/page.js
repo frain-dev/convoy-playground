@@ -462,6 +462,8 @@ export default function Home() {
 				method: 'POST'
 			});
 
+			setActiveSources(createSourceResponse.data);
+			localStorage.setItem('PLAYGROUND_ACTIVE_SOURCE', JSON.stringify(createSourceResponse.data));
 			setSources([...sources, createSourceResponse.data]);
 			checkIfActiveSourceExists([...sources, createSourceResponse.data]);
 			setFetchingSources(false);
@@ -469,7 +471,7 @@ export default function Home() {
 
 			if (parsedLocalSources.length > 0) {
 				General.showNotification({
-					message: 'New source created successfully',
+					message: 'New url created successfully',
 					style: 'success'
 				});
 			}
@@ -667,10 +669,12 @@ export default function Home() {
 					<div className="sticky top-100px bg-[#fafafe] pt-14px pb-40px z-50">
 						<div className="relative mt-24px max-w-[720px] w-fit mx-auto">
 							<div ref={sourceFormRef} className="flex items-center gap-16px bg-white-100 rounded-8px border border-primary-50 pr-16px shadow-sm transition-all duration-300 m-auto w-fit">
-								<button onClick={() => toggleSourceDropdown()} className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50">
+								<div className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50">URL</div>
+
+								{/* <button onClick={() => toggleSourceDropdown()} className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50">
 									{activeSource?.name}
 									<img src="/angle-down.svg" alt="angle-down icon" className={`ml-28px transition-all duration-300 ease-in-out ${showSourceDropdown ? 'rotate-180' : ''}`} />
-								</button>
+								</button> */}
 
 								<div className="flex gap-24px justify-between">
 									<div className="flex items-center py-14px">
@@ -686,6 +690,10 @@ export default function Home() {
 											<img src="/copy.svg" alt="copy icon" className="w-18px h-18px" />
 										</button>
 									</div>
+									<button className="flex items-center gap-8px text-primary-400 text-14 px-16px disabled:opacity-50 border-l border-primary-50" disabled={addingSource || sources.length >= 5} onClick={() => createSource()}>
+										<img src="/plus.svg" alt="plus icon" />
+										{addingSource ? 'Creating...' : 'New'}
+									</button>
 								</div>
 							</div>
 
@@ -886,8 +894,6 @@ export default function Home() {
 						<div className="max-w-[500px] w-full min-h-[70vh] rounded-8px bg-white-100 border border-primary-25">
 							<div className="flex items-center justify-between border-b border-gray-200 pr-16px">
 								<h4 className="pb-12px pt-8px px-16px text-12 text-left capitalize text-gray-500 tracking-[0.02em]">Request</h4>
-
-
 							</div>
 
 							{selectedEvent && (
