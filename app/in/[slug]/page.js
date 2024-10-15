@@ -1,10 +1,10 @@
 'use client';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import CodeRenderer from './components/prism';
-import Notification from './components/notification';
-import General from './services/general';
+import CodeRenderer from '../../components/prism';
+import Notification from '../../components/notification';
+import General from '../../services/general';
 import { format } from 'date-fns';
-import Loader from './components/loader';
+import Loader from '../../components/loader';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 
@@ -108,6 +108,7 @@ export default function Home() {
 		const _sourcesString = localStorage.getItem('PLAYGROUND_ACTIVE_SOURCE');
 		if (_sourcesString) {
 			const activeSource = JSON.parse(_sourcesString);
+
 			setUpActiveSource(activeSource);
 		} else return createSource();
 	};
@@ -319,7 +320,7 @@ export default function Home() {
 	const setUpActiveSource = sourceData => {
 		setActiveSources(sourceData);
 		localStorage.setItem('PLAYGROUND_ACTIVE_SOURCE', JSON.stringify(sourceData));
-		router.push(`/in/${sourceData.mask_id}`);
+		router.replace(`/in/${sourceData.mask_id}`, { shallow: true });
 		setFetchingSources(false);
 	};
 
