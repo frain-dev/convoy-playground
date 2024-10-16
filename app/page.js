@@ -418,7 +418,7 @@ export default function Home() {
 			<div className="pt-160px px-20px max-w-[1500px] m-auto">
 				<div className={(displayedEvents?.length == 0 ? 'h-96px' : 'h-0') + ' overflow-hidden transition-all duration-300'}>
 					<h2 className="text-24 text-gray-800 text-center font-semibold mb-16px">Convoy Playground</h2>
-					<p className="text-center text-14 text-gray-500 m-auto max-w-[502px]">A playground for you to receive and send out webhook events, test, debug and review webhook events; just like you will with Convoy.</p>
+					<p className="text-center text-14 text-gray-500 m-auto max-w-[502px]">A playground for you to receive, test, and debug webhook events; just like you will with Convoy.</p>
 				</div>
 
 				{/* sources/endpoints loader  */}
