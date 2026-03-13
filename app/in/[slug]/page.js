@@ -419,7 +419,7 @@ export default function Home() {
 			<div className="pt-160px px-20px max-w-[1500px] m-auto">
 				<div className={(displayedEvents?.length == 0 ? 'h-96px' : 'h-0') + ' overflow-hidden transition-all duration-300'}>
 					<h2 className="text-24 text-gray-800 text-center font-semibold mb-16px">Convoy Playground</h2>
-					<p className="text-center text-14 text-gray-500 m-auto max-w-[502px]">A playground for you to receive, test, and debug webhook events; just like you will with Convoy.</p>
+					<p className="text-center text-14 text-gray-600 font-medium m-auto max-w-[502px]">A playground for you to receive, test, and debug webhook events; just like you will with Convoy.</p>
 				</div>
 
 				{/* sources/endpoints loader  */}
@@ -443,16 +443,16 @@ export default function Home() {
 					<div className="sticky top-100px bg-[#fafafe] pt-14px pb-40px z-50">
 						<div className="relative mt-24px max-w-[720px] w-fit mx-auto">
 							<div ref={sourceFormRef} className="flex items-center gap-16px bg-white-100 rounded-8px border border-primary-50 pr-16px shadow-sm transition-all duration-300 m-auto w-fit">
-								<div className="flex items-center py-14px px-16px text-gray-600 text-14 border-r border-primary-50">URL</div>
+								<div className="flex items-center py-14px px-16px text-gray-700 text-14 font-semibold border-r border-primary-50">URL</div>
 
 								<div className="flex gap-24px justify-between">
 									<div className="flex items-center py-14px">
-										<span className="text-gray-600 text-14 mr-10px max-w-[440px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">https://{activeSource?.url}</span>
+										<span className="text-gray-700 text-14 font-medium mr-10px max-w-[440px] w-full whitespace-nowrap  overflow-hidden text-ellipsis">{activeSource?.url}</span>
 										<button
 											onClick={event =>
 												copyToClipboard({
 													event,
-													textToCopy: `https://${activeSource?.url}`,
+													textToCopy: activeSource?.url,
 													notificationText: 'Source URL has been copied to clipboard.'
 												})
 											}>
@@ -482,7 +482,7 @@ export default function Home() {
 						{eventsErrorState && (
 							<>
 								<img src="/warning-icon-large.svg" alt="warning icon" className="mb-24px" />
-								<p className="text-center text-14">An error occured, please refresh</p>
+								<p className="text-center text-14">An error occurred, please refresh</p>
 							</>
 						)}
 					</div>

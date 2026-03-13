@@ -4,8 +4,34 @@ import Script from 'next/script';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-	title: 'Convoy Playground',
-	description: 'Convoy Playground'
+	title: 'Convoy Playground — Receive, Test & Debug Webhook Events',
+	description: 'A free playground for receiving, testing, and debugging webhook events in real time. Inspect headers, payloads, and delivery attempts — powered by Convoy, the open-source webhooks gateway.',
+	keywords: ['webhook', 'webhook testing', 'webhook playground', 'convoy', 'webhook debugger', 'webhook events', 'webhook inspector', 'webhook delivery', 'open source webhooks'],
+	metadataBase: new URL('https://playground.getconvoy.io'),
+	alternates: {
+		canonical: '/'
+	},
+	openGraph: {
+		title: 'Convoy Playground — Receive, Test & Debug Webhook Events',
+		description: 'A free playground for receiving, testing, and debugging webhook events in real time. Inspect headers, payloads, and delivery attempts — powered by Convoy.',
+		url: 'https://playground.getconvoy.io',
+		siteName: 'Convoy Playground',
+		type: 'website',
+		locale: 'en_US'
+	},
+	twitter: {
+		card: 'summary_large_image',
+		title: 'Convoy Playground — Receive, Test & Debug Webhook Events',
+		description: 'A free playground for receiving, testing, and debugging webhook events in real time. Powered by Convoy, the open-source webhooks gateway.'
+	},
+	robots: {
+		index: true,
+		follow: true,
+		googleBot: {
+			index: true,
+			follow: true
+		}
+	}
 };
 
 export default function RootLayout({ children }) {
@@ -17,6 +43,25 @@ export default function RootLayout({ children }) {
 					{`var dataLayer = window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments)}
 					gtag('js', new Date()); gtag('config', 'G-GTJK2CPP01');`}
 				</Script>
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify({
+							'@context': 'https://schema.org',
+							'@type': 'WebApplication',
+							name: 'Convoy Playground',
+							url: 'https://playground.getconvoy.io',
+							description: 'A free playground for receiving, testing, and debugging webhook events in real time. Powered by Convoy, the open-source webhooks gateway.',
+							applicationCategory: 'DeveloperApplication',
+							operatingSystem: 'All',
+							offers: {
+								'@type': 'Offer',
+								price: '0',
+								priceCurrency: 'USD'
+							}
+						})
+					}}
+				/>
 			</head>
 
 			<body className={`${inter.className} bg-[#FAFAFE]`} suppressHydrationWarning={true}>
