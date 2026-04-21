@@ -22,7 +22,7 @@ export const metadata = {
 			{
 				url: '/og-image.png',
 				width: 1024,
-				height: 341,
+				height: 537,
 				alt: 'Convoy Playground — Receive, Test & Debug Webhook Events'
 			}
 		]
