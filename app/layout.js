@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata = {
 	title: 'Convoy Playground — Receive, Test & Debug Webhook Events',
 	description: 'A free playground for receiving, testing, and debugging webhook events in real time. Inspect headers, payloads, and delivery attempts — powered by Convoy, the open-source webhooks gateway.',
-	keywords: ['webhook', 'webhook testing', 'webhook playground', 'convoy', 'webhook debugger', 'webhook events', 'webhook inspector', 'webhook delivery', 'open source webhooks'],
+	keywords: ['webhook', 'webhook testing', 'webhook playground', 'convoy', 'webhook debugger', 'webhook events', 'webhook inspector', 'webhook delivery', 'open source webhooks', 'webhook receiver', 'webhook url', 'test webhooks online'],
 	metadataBase: new URL('https://playground.getconvoy.io'),
 	alternates: {
 		canonical: '/'
@@ -17,19 +17,30 @@ export const metadata = {
 		url: 'https://playground.getconvoy.io',
 		siteName: 'Convoy Playground',
 		type: 'website',
-		locale: 'en_US'
+		locale: 'en_US',
+		images: [
+			{
+				url: '/opengraph-image',
+				width: 1200,
+				height: 630,
+				alt: 'Convoy Playground — Receive, Test & Debug Webhook Events'
+			}
+		]
 	},
 	twitter: {
 		card: 'summary_large_image',
 		title: 'Convoy Playground — Receive, Test & Debug Webhook Events',
-		description: 'A free playground for receiving, testing, and debugging webhook events in real time. Powered by Convoy, the open-source webhooks gateway.'
+		description: 'A free playground for receiving, testing, and debugging webhook events in real time. Powered by Convoy, the open-source webhooks gateway.',
+		images: ['/twitter-image']
 	},
 	robots: {
 		index: true,
 		follow: true,
 		googleBot: {
 			index: true,
-			follow: true
+			follow: true,
+			'max-image-preview': 'large',
+			'max-snippet': -1
 		}
 	}
 };
