@@ -1,35 +1,79 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Convoy Playground
 
-## Getting Started
+A free, open-source playground for receiving, testing, and debugging webhook events in real time — powered by [Convoy](https://getconvoy.io), the open-source webhooks gateway.
 
-First, run the development server:
+**Live at [playground.getconvoy.io](https://playground.getconvoy.io)**
+
+## Features
+
+- **Instant webhook URL** — Get a unique HTTP source URL in one click. Send webhook events to it from any provider or `curl`.
+- **Real-time event feed** — Events appear within seconds, grouped by date with status indicators (success, pending, failed).
+- **Payload inspection** — Syntax-highlighted headers and JSON body for every event, powered by Prism.js.
+- **Delivery attempt tracking** — See delivery metadata including retry counts and attempt status.
+- **Shareable sessions** — Each source gets a unique `/in/{id}` URL you can bookmark or share.
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/frain-dev/convoy-playground.git
+cd convoy-playground
+
+# Install dependencies
+npm install
+
+# Create environment file
+cp .env.example .env.local
+```
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `API_URL` | Base URL for the Convoy API (e.g. `https://api.getconvoy.io/api/v1`) | Yes |
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Production Build
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- [Next.js](https://nextjs.org/) — React framework (App Router)
+- [Tailwind CSS](https://tailwindcss.com/) — Utility-first styling
+- [Prism.js](https://prismjs.com/) — Syntax highlighting
+- [Sentry](https://sentry.io/) — Error monitoring
+- [date-fns](https://date-fns.org/) — Date formatting
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How It Works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+1. On first visit, the playground creates an HTTP source via the Convoy API.
+2. You receive a unique URL (e.g. `https://...convoy.io/ingest/abc123`).
+3. Send any HTTP request to that URL — POST a JSON payload, forward a webhook from Stripe/GitHub/etc.
+4. Events appear in the feed. Click any event to inspect its headers and body.
+5. Delivery attempts and their statuses are tracked automatically.
 
-## Deploy on Vercel
+## Contributing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Contributions are welcome! Please open an issue or submit a pull request.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-# convoy-playground
+## License
+
+This project is maintained by [Convoy](https://getconvoy.io).
