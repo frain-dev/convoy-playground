@@ -20,9 +20,9 @@ export const metadata = {
 		locale: 'en_US',
 		images: [
 			{
-				url: '/opengraph-image',
-				width: 1200,
-				height: 630,
+				url: '/og-image.png',
+				width: 1024,
+				height: 341,
 				alt: 'Convoy Playground — Receive, Test & Debug Webhook Events'
 			}
 		]
@@ -31,7 +31,7 @@ export const metadata = {
 		card: 'summary_large_image',
 		title: 'Convoy Playground — Receive, Test & Debug Webhook Events',
 		description: 'A free playground for receiving, testing, and debugging webhook events in real time. Powered by Convoy, the open-source webhooks gateway.',
-		images: ['/twitter-image']
+		images: ['/og-image.png']
 	},
 	robots: {
 		index: true,
