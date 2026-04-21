@@ -3,14 +3,8 @@ export default function sitemap() {
 		{
 			url: 'https://playground.getconvoy.io',
 			lastModified: new Date(),
-			changeFrequency: 'weekly',
+			changeFrequency: 'monthly',
 			priority: 1
-		},
-		{
-			url: 'https://playground.getconvoy.io/in',
-			lastModified: new Date(),
-			changeFrequency: 'weekly',
-			priority: 0.8
 		}
 	];
 }
